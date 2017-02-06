@@ -91,6 +91,7 @@ bool Application::Init()
             return rakpeer_->Connect( DFL_SERVER_IP, DFL_PORTNUMBER, 0, 0 );
 		}
 	}
+	rejected = false;
 	return false;
 }
 
@@ -204,280 +205,289 @@ bool Application::Update()
 			break;
 		}
 	}
-
-	if (Packet* packet = rakpeer_->Receive())
-	{
-		RakNet::BitStream bs(packet->data, packet->length, false);
-		
-		unsigned char msgid = 0;
-		RakNetTime timestamp = 0;
-
-		bs.Read(msgid);
-
-		if (msgid == ID_TIMESTAMP)
+	if (!rejected) {
+		if (Packet* packet = rakpeer_->Receive())
 		{
-			bs.Read(timestamp);
+			RakNet::BitStream bs(packet->data, packet->length, false);
+
+			unsigned char msgid = 0;
+			RakNetTime timestamp = 0;
+
 			bs.Read(msgid);
-		}
 
-		switch(msgid)
-		{
-		case ID_CONNECTION_REQUEST_ACCEPTED:
-			std::cout << "Connected to Server" << std::endl;
-			break;
+			if (msgid == ID_TIMESTAMP)
+			{
+				bs.Read(timestamp);
+				bs.Read(msgid);
+			}
 
-		case ID_NO_FREE_INCOMING_CONNECTIONS:
-		case ID_CONNECTION_LOST:
-		case ID_DISCONNECTION_NOTIFICATION:
-			std::cout << "Lost Connection to Server" << std::endl;
+			switch (msgid)
+			{
+			case ID_CONNECTION_REQUEST_ACCEPTED:
+				std::cout << "Connected to Server" << std::endl;
+				break;
+
+			case ID_NO_FREE_INCOMING_CONNECTIONS:
+			case ID_CONNECTION_LOST:
+			case ID_DISCONNECTION_NOTIFICATION:
+				std::cout << "Lost Connection to Server" << std::endl;
+				rakpeer_->DeallocatePacket(packet);
+				return true;
+
+			case ID_WELCOME:
+			{
+							   unsigned int shipcount, id;
+							   float x_, y_;
+							   int type_;
+							   std::string temp;
+							   char chartemp[5];
+
+							   bs.Read(id);
+							   ships_.at(0)->setID(id);
+							   bs.Read(shipcount);
+
+							   for (unsigned int i = 0; i < shipcount; ++i)
+							   {
+								   bs.Read(id);
+								   bs.Read(x_);
+								   bs.Read(y_);
+								   bs.Read(type_);
+								   std::cout << "Welcome Ship pos " << x_ << ", " << y_ << ", type " << type_ << std::endl;
+								   Ship* ship = new Ship(type_, x_, y_);
+								   temp = "Ship ";
+								   temp += _itoa_s(id, chartemp, 10);
+								   ship->SetName(temp.c_str());
+								   ship->setID(id);
+								   ships_.push_back(ship);
+							   }
+
+							   SendInitialPosition();
+			}
+				break;
+
+			case ID_NEWSHIP:
+			{
+							   unsigned int id;
+							   bs.Read(id);
+
+							   if (id == ships_.at(0)->GetID())
+							   {
+								   // if it is me
+								   break;
+							   }
+							   else
+							   {
+								   float x_, y_;
+								   int type_;
+								   std::string temp;
+								   char chartemp[5];
+
+								   bs.Read(x_);
+								   bs.Read(y_);
+								   bs.Read(type_);
+								   std::cout << "New Ship pos" << x_ << " " << y_ << std::endl;
+								   Ship* ship = new Ship(type_, x_, y_);
+								   temp = "Ship ";
+								   temp += _itoa_s(id, chartemp, 10);
+								   ship->SetName(temp.c_str());
+								   ship->setID(id);
+								   ships_.push_back(ship);
+							   }
+			}
+				break;
+
+			case ID_LOSTSHIP:
+			{
+								unsigned int shipid;
+								bs.Read(shipid);
+								for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+								{
+									if ((*itr)->GetID() == shipid)
+									{
+										delete *itr;
+										ships_.erase(itr);
+										break;
+									}
+								}
+			}
+				break;
+
+			case ID_INITIALPOS:
+				break;
+
+			case ID_MOVEMENT:
+			{
+								totalreceived_ += bs.GetNumberOfBytesUsed();
+
+								unsigned int shipid;
+								float server_x, server_y, server_w;
+								float server_vel_x, server_vel_y, server_vel_angular;
+								bs.Read(shipid);
+								for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+								{
+									if ((*itr)->GetID() == shipid)
+									{
+										bs.Read(server_x);
+										bs.Read(server_y);
+										bs.Read(server_w);
+										bs.Read(server_vel_x);
+										bs.Read(server_vel_y);
+										bs.Read(server_vel_angular);
+
+										(*itr)->SetServerLocation(server_x, server_y, server_w);
+										(*itr)->SetServerVelocity(server_vel_x, server_vel_y, server_vel_angular);
+										(*itr)->DoInterpolateUpdate();
+										break;
+									}
+								}
+			}
+				break;
+
+			case ID_COLLIDE:
+			{
+							   unsigned int shipid;
+							   float x, y;
+							   bs.Read(shipid);
+
+							   if (shipid == ships_.at(0)->GetID())
+							   {
+								   std::cout << "collided with someone!" << std::endl;
+								   bs.Read(x);
+								   bs.Read(y);
+								   ships_.at(0)->SetX(x);
+								   ships_.at(0)->SetY(y);
+								   bs.Read(x);
+								   bs.Read(y);
+								   ships_.at(0)->SetVelocityX(x);
+								   ships_.at(0)->SetVelocityY(y);
+#ifdef INTERPOLATEMOVEMENT
+								   bs.Read(x);
+								   bs.Read(y);
+								   ships_.at(0)->SetServerVelocityX(x);
+								   ships_.at(0)->SetServerVelocityY(y);
+#endif	
+							   }
+			}
+				break;
+
+
+			case ID_NEWMISSILE:
+			{
+								  float x, y, w;
+								  int id;
+
+								  bs.Read(id);
+								  bs.Read(x);
+								  bs.Read(y);
+								  bs.Read(w);
+
+								  missiles_.push_back(new Missile("missile.png", x, y, w, id));
+			}
+				break;
+
+			case ID_UPDATEMISSILE:
+			{
+									 float server_x, server_y, server_w;
+									 float server_vel_x, server_vel_y, server_vel_angular;
+									 int id;
+									 char deleted;
+
+									 bs.Read(id);
+									 bs.Read(deleted);
+
+									 for (MissileList::iterator itr = missiles_.begin(); itr != missiles_.end(); ++itr)
+									 {
+										 if ((*itr)->GetOwnerID() == id)
+										 {
+											 if (deleted)
+											 {
+												 delete *itr;
+												 missiles_.erase(itr);
+											 }
+											 else
+											 {
+												 bs.Read(server_x);
+												 bs.Read(server_y);
+												 bs.Read(server_w);
+												 bs.Read(server_vel_x);
+												 bs.Read(server_vel_y);
+												 bs.Read(server_vel_angular);
+
+												 (*itr)->SetServerLocation(server_x, server_y, server_w);
+												 (*itr)->SetServerVelocity(server_vel_x, server_vel_y, server_vel_angular);
+												 (*itr)->DoInterpolateUpdate();
+											 }
+											 break;
+										 }
+									 }
+
+			}
+				break;
+
+				// Assignment 2
+			case ID_MAX_PLAYERS:
+			{
+								   std::cout << "hit the maximum player limit" << std::endl;
+								   rejected = true;
+			}
+				break;
+
+			case ID_NEWBOOM:
+			{
+							   float x, y;
+
+							   bs.Read(x);
+							   bs.Read(y);
+
+							   booms_.push_back(new Boom("boom.png", x, y));
+			}
+				break;
+
+			default:
+				std::cout << "Unhandled Message Identifier: " << (int)msgid << std::endl;
+
+			}
 			rakpeer_->DeallocatePacket(packet);
-			return true;
-
-		case ID_WELCOME:
-			{
-                unsigned int shipcount, id;
-                float x_, y_;
-                int type_;
-                std::string temp;
-                char chartemp[5];
-
-                bs.Read( id );
-                ships_.at( 0 )->setID( id );
-                bs.Read( shipcount );
-
-                for( unsigned int i = 0; i < shipcount; ++i )
-                {
-                    bs.Read( id );
-                    bs.Read( x_ );
-                    bs.Read( y_ );
-                    bs.Read( type_ );
-                    std::cout << "Welcome Ship pos " << x_ << ", " << y_ << ", type " << type_ << std::endl;
-                    Ship* ship = new Ship( type_, x_, y_ );
-                    temp = "Ship ";
-                    temp += _itoa_s( id, chartemp, 10 );
-                    ship->SetName( temp.c_str( ) );
-                    ship->setID( id );
-                    ships_.push_back( ship );
-                }
-
-                SendInitialPosition( );
-			}
-			break;
-
-		case ID_NEWSHIP:
-			{
-				unsigned int id;
-				bs.Read(id);
-
-				if( id == ships_.at(0)->GetID() )
-				{
-					// if it is me
-					break;
-				}
-				else
-				{
-					float x_, y_;
-					int type_;
-					std::string temp;
-					char chartemp[5];
-
-					bs.Read( x_ );
-					bs.Read( y_ );
-					bs.Read( type_ );
-					std::cout << "New Ship pos" << x_ << " " << y_ << std::endl;
-					Ship* ship = new Ship(type_, x_, y_);
-					temp = "Ship "; 
-					temp += _itoa_s(id, chartemp, 10);
-					ship->SetName(temp.c_str());
-					ship->setID( id );
-					ships_.push_back(ship);
-				}
-			}
-			break;
-
-		case ID_LOSTSHIP:
-			{
-				unsigned int shipid;
-				bs.Read(shipid);
-				for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
-				{
-                    if( (*itr)->GetID( ) == shipid )
-					{
-						delete *itr;
-						ships_.erase(itr);
-						break;
-					}
-				}
-			}
-			break;
-
-		case ID_INITIALPOS:
-			break;
-
-		case ID_MOVEMENT:
-			{
-				totalreceived_ += bs.GetNumberOfBytesUsed();
-				
-				unsigned int shipid;
-                float server_x, server_y, server_w;
-                float server_vel_x, server_vel_y, server_vel_angular;
-				bs.Read(shipid);
-				for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
-				{
-					if ((*itr)->GetID() == shipid)
-					{
-                        bs.Read( server_x );
-                        bs.Read( server_y );
-                        bs.Read( server_w );
-                        bs.Read( server_vel_x );
-                        bs.Read( server_vel_y );
-                        bs.Read( server_vel_angular );
-
-                        (*itr)->SetServerLocation( server_x, server_y, server_w );
-                        (*itr)->SetServerVelocity( server_vel_x, server_vel_y, server_vel_angular );
-                        (*itr)->DoInterpolateUpdate();
-						break;
-					}
-				}
-			}
-			break;
-
-        case ID_COLLIDE:
-            {
-                unsigned int shipid;
-                float x, y;
-                bs.Read( shipid );
-
-                if( shipid == ships_.at( 0 )->GetID( ) )
-                {
-                    std::cout << "collided with someone!" << std::endl;
-                    bs.Read( x );
-                    bs.Read( y );
-                    ships_.at( 0 )->SetX( x );
-                    ships_.at( 0 )->SetY( y );
-                    bs.Read( x );
-                    bs.Read( y );
-                    ships_.at( 0 )->SetVelocityX( x );
-                    ships_.at( 0 )->SetVelocityY( y );
-    #ifdef INTERPOLATEMOVEMENT
-                    bs.Read( x );
-                    bs.Read( y );
-                    ships_.at( 0 )->SetServerVelocityX( x );
-                    ships_.at( 0 )->SetServerVelocityY( y );
-    #endif	
-                }
-            }
-            break;
-
-
-		case ID_NEWMISSILE:
-			{
-				float x, y, w;
-				int id;
-
-				bs.Read(id);
-				bs.Read(x);
-				bs.Read(y);
-				bs.Read(w);
-
-				missiles_.push_back( new Missile( "missile.png", x, y, w, id ) );
-			}
-			break;
-
-		case ID_UPDATEMISSILE:
-			{
-				float x,y,w;
-				int id;
-				char deleted;
-
-				bs.Read(id);
-				bs.Read(deleted);
-
-				for (MissileList::iterator itr = missiles_.begin(); itr != missiles_.end(); ++itr)
-				{
-					if( (*itr)->GetOwnerID() == id )
-					{
-						if( deleted )
-						{
-							delete *itr;
-							missiles_.erase(itr);
-						}
-						else
-						{
-							bs.Read( x );
-							bs.Read( y );
-							bs.Read( w );
-							(*itr)->UpdateLoc( x, y, w );
-						}
-						break;
-					}
-				}
-				
-			}
-			break;
-
-			// Assignment 2
-		case ID_MAX_PLAYERS:
-		{
-							   std::cout << "hit the maximum player limit" << std::endl;
-							   rakpeer_->DeallocatePacket(packet);
-							   return true;
 		}
-			break;
 
-		case ID_NEWBOOM:
+		if (RakNet::GetTime() - timer_ > 100)
 		{
-						   float x, y;
+			timer_ = RakNet::GetTime();
 
-						   bs.Read(x);
-						   bs.Read(y);
+			RakNet::BitStream bs2;
+			unsigned char msgid = ID_MOVEMENT;
+			bs2.Write(msgid);
+			bs2.Write(ships_.at(0)->GetID());
+			bs2.Write(ships_.at(0)->GetServerX());
+			bs2.Write(ships_.at(0)->GetServerY());
+			bs2.Write(ships_.at(0)->GetServerW());
+			bs2.Write(ships_.at(0)->GetServerVelocityX());
+			bs2.Write(ships_.at(0)->GetServerVelocityY());
+			bs2.Write(ships_.at(0)->GetAngularVelocity());
 
-						   booms_.push_back(new Boom("boom.png", x, y));
-		}
-			break;
-			
-		default:
-			std::cout << "Unhandled Message Identifier: " << (int)msgid << std::endl;
+			rakpeer_->Send(&bs2, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			totalsent_ += bs2.GetNumberOfBytesUsed();
 
-		}
-		rakpeer_->DeallocatePacket(packet);
-	}
+			// send missile update to server
+			if (mymissile)
+			{
+				RakNet::BitStream bs3;
+				unsigned char msgid2 = ID_UPDATEMISSILE;
+				unsigned char deleted = 0;
+				bs3.Write(msgid2);
+				bs3.Write(mymissile->GetOwnerID());
+				bs3.Write(deleted);
+				bs3.Write(mymissile->GetServerX());
+				bs3.Write(mymissile->GetServerY());
+				bs3.Write(mymissile->GetServerW());
+				bs3.Write(mymissile->GetServerVelocityX());
+				bs3.Write(mymissile->GetServerVelocityY());
+				bs3.Write(mymissile->GetAngularVelocity());
 
-	if (RakNet::GetTime() - timer_ > 100)
-	{
-		timer_ = RakNet::GetTime();
-
-		RakNet::BitStream bs2;
-		unsigned char msgid = ID_MOVEMENT;
-        bs2.Write( msgid );
-        bs2.Write( ships_.at( 0 )->GetID() );
-        bs2.Write( ships_.at( 0 )->GetServerX() );
-        bs2.Write( ships_.at( 0 )->GetServerY() );
-        bs2.Write( ships_.at( 0 )->GetServerW() );
-        bs2.Write( ships_.at( 0 )->GetServerVelocityX() );
-        bs2.Write( ships_.at( 0 )->GetServerVelocityY() );
-        bs2.Write( ships_.at( 0 )->GetAngularVelocity() );
-
-		rakpeer_->Send(&bs2, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
-		totalsent_ += bs2.GetNumberOfBytesUsed();
-
-		// send missile update to server
-		if( mymissile )
-		{
-			RakNet::BitStream bs3;
-			unsigned char msgid2 = ID_UPDATEMISSILE;
-			unsigned char deleted = 0;
-			bs3.Write(msgid2);
-			bs3.Write(mymissile->GetOwnerID());
-			bs3.Write(deleted);
-			bs3.Write(mymissile->GetX());
-			bs3.Write(mymissile->GetY());
-			bs3.Write(mymissile->GetW());
-
-			rakpeer_->Send(&bs3, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+				rakpeer_->Send(&bs3, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
 		}
 	}
-
 	return false;
 }
 
@@ -662,7 +672,6 @@ void Application::CreateBoom(float x, float y)
 	// add new boom to list
 	booms_.push_back(new Boom("boom.png", x, y));
 
-
 	// send network command to add new missile
 	bs.Reset();
 	msgid = ID_NEWBOOM;
@@ -671,7 +680,4 @@ void Application::CreateBoom(float x, float y)
 	bs.Write(y);
 
 	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
-
-	have_missile = true;
-
 }

@@ -43,6 +43,7 @@ class Application
 	int totalreceived_;
 	bool have_missile;
 	bool keydown_enter;
+	bool rejected;
 
 	bool Init();
 	static bool Loop();

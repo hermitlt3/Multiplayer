@@ -27,15 +27,18 @@ Ship::Ship( int type, float locx_, float locy_ )
 , velocity_y_( 0 )
 , id( 0 )
 , collidetimer( 0 )
+
+// Assignment 2
+, health(10)
+, active(true)
+
 #ifdef INTERPOLATEMOVEMENT
 , server_w_( 0 )
 , client_w_( 0 )
 , server_velx_( 0 )
 , server_vely_( 0 )
 , ratio_( 1 )
-// Assignment 2
-, health( 10 )
-, active( true )
+
 #endif
 {
     std::cout << "Creating Ship " << type << " " << locx_ << " " << locy_ << std::endl;
