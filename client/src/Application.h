@@ -6,6 +6,7 @@
 #include "asteroid.h"
 #include "ship.h"
 #include "missile.h"
+#include "boom.h"
 #include "textbox.h"
 
 class HGE;
@@ -28,10 +29,12 @@ class Application
 	HGE* hge_; //!< Instance of the internal graphics engine
 	typedef std::vector<Ship*> ShipList;  //!< A list of ships
 	typedef std::vector<Missile*> MissileList;
+	typedef std::vector<Boom*> BoomList;
 	ShipList ships_; //!< List of all the ships in the universe
     Asteroid *asteroid;
 	MissileList missiles_;
 	Missile* mymissile;
+	BoomList booms_;
 	TextBox	*fpsbox;
 	TextBox *databox;
 	RakPeerInterface* rakpeer_;
@@ -48,6 +51,8 @@ class Application
 	bool SendInitialPosition();
 	void CreateMissile( float x, float y, float w, int id );
 	bool RemoveMissile( float x, float y, float w, int id );
+	// Assignment 2
+	void CreateBoom( float x, float y );
 
 public:
 	Application();

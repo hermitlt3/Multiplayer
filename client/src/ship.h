@@ -44,6 +44,10 @@ class Ship
 
     float oldx, oldy;	// for reset back to previous location if collision detected
 
+	// Assignment 2
+	int health;
+	bool active;
+
     // Lab Task 2 : add for interpolation
 #ifdef INTERPOLATEMOVEMENT
     float server_x_;
@@ -121,6 +125,11 @@ public:
 
         return false;
     }
+
+	// Assignment 2
+	int GetHealth() { return health; }
+	void SetHealth(int health) { this->health = health; }
+
 
     // Lab Task 2 : add new member functions here
 #ifdef INTERPOLATEMOVEMENT

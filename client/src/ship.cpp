@@ -1,5 +1,6 @@
 #include <math.h>
 #include <iostream>
+#include <sstream>
 
 #include "hge.h"
 #include "hgeSprite.h"
@@ -32,6 +33,9 @@ Ship::Ship( int type, float locx_, float locy_ )
 , server_velx_( 0 )
 , server_vely_( 0 )
 , ratio_( 1 )
+// Assignment 2
+, health( 10 )
+, active( true )
 #endif
 {
     std::cout << "Creating Ship " << type << " " << locx_ << " " << locy_ << std::endl;
@@ -196,6 +200,12 @@ void Ship::Update(float timedelta)
 		y_ += screenheight + spriteheight;
 	else if (y_ > screenheight + spriteheight/2)
 		y_ -= screenheight + spriteheight;
+
+	// Assignment 2
+	if (health <= 0) {
+		health = 0;
+		active = false;
+	}
 }
 
 
@@ -209,9 +219,14 @@ void Ship::Update(float timedelta)
 
 void Ship::Render()
 {
-	sprite_->RenderEx(x_, y_, w_);
+	if (active) {
+		sprite_->RenderEx(x_, y_, w_);
 
-	font_->printf(x_+5, y_+5, HGETEXT_LEFT, "%s", mytext_.c_str());
+		std::ostringstream ss;
+		ss << "Health: " << health;
+		font_->printf(x_ + 5, y_ + 5, HGETEXT_LEFT, "%s", mytext_.c_str());
+		font_->printf(x_ + 5, y_ - 20, HGETEXT_LEFT, "%s", ss.str().c_str());
+	}
 }
 
 /**

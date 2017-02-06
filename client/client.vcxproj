@@ -92,6 +92,7 @@
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\asteroid.cpp" />
+    <ClCompile Include="src\boom.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\missile.cpp" />
     <ClCompile Include="src\ship.cpp" />
@@ -102,6 +103,7 @@
     <ClInclude Include="..\share\MyMsgIDs.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\asteroid.h" />
+    <ClInclude Include="src\boom.h" />
     <ClInclude Include="src\Globals.h" />
     <ClInclude Include="src\missile.h" />
     <ClInclude Include="src\ship.h" />

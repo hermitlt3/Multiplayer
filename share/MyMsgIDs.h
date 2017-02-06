@@ -13,6 +13,10 @@ enum MyMsgIDs
     ID_COLLIDE,
     ID_NEWMISSILE,
 	ID_UPDATEMISSILE,
+
+	// Assignment 2
+	ID_NEWBOOM,
+	ID_MAX_PLAYERS
 };
 
 #endif

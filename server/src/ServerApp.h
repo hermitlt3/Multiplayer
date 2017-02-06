@@ -33,6 +33,9 @@ class ServerApp
 	void SendDisconnectionNotification(SystemAddress& addr);
 	void ProcessInitialPosition( SystemAddress& addr, float x_, float y_, int type_);
     void UpdatePosition( SystemAddress& addr, float x_, float y_ );
+
+	// Assignment 2
+	void SendMaxPlayers(SystemAddress & addr);
 public:
 	ServerApp();
 	~ServerApp();

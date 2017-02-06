@@ -10,6 +10,8 @@
 
 #include "ServerApp.h"
 
+#define MAX_PLAYERS		2
+
 ServerApp::ServerApp() : 
 	rakpeer_(RakNetworkFactory::GetRakPeerInterface()),
 	newID(0)
@@ -79,6 +81,14 @@ void ServerApp::Loop()
 				bs.ResetReadPointer();
 				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;
+		
+		// Assignment 2
+		case ID_MAX_PLAYERS:
+			bs.ResetReadPointer();
+			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
+			break;
+
+
 		default:
 			std::cout << "Unhandled Message Identifier: " << (int)msgid << std::endl;
 		}
@@ -91,31 +101,39 @@ void ServerApp::SendWelcomePackage(SystemAddress& addr)
 {
 	++newID;
 	unsigned int shipcount = static_cast<unsigned int>(clients_.size());
-	unsigned char msgid = ID_WELCOME;
-	
-	RakNet::BitStream bs;
-	bs.Write(msgid);
-	bs.Write(newID);
-	bs.Write(shipcount);
 
-	for (ClientMap::iterator itr = clients_.begin(); itr != clients_.end(); ++itr)
-	{
-		std::cout << "Ship " << itr->second.id << " pos" << itr->second.x_ << " " << itr->second.y_ << std::endl;
-		bs.Write( itr->second.id );
-		bs.Write( itr->second.x_ );
-		bs.Write( itr->second.y_ );
-        bs.Write( itr->second.type_ );
+	if (shipcount < MAX_PLAYERS) {
+		unsigned char msgid = ID_WELCOME;
+
+		RakNet::BitStream bs;
+		bs.Write(msgid);
+		bs.Write(newID);
+		bs.Write(shipcount);
+
+		for (ClientMap::iterator itr = clients_.begin(); itr != clients_.end(); ++itr)
+		{
+			std::cout << "Ship " << itr->second.id << " pos" << itr->second.x_ << " " << itr->second.y_ << std::endl;
+			bs.Write(itr->second.id);
+			bs.Write(itr->second.x_);
+			bs.Write(itr->second.y_);
+			bs.Write(itr->second.type_);
+		}
+
+		rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, addr, false);
+
+		bs.Reset();
+
+		GameObject newobject(newID);
+
+		clients_.insert(std::make_pair(addr, newobject));
+
+		std::cout << "New guy, assigned id " << newID << std::endl;
 	}
-
-	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED,0, addr, false);
-
-	bs.Reset();
-
-	GameObject newobject(newID);
-
-	clients_.insert(std::make_pair(addr, newobject));
-
-	std::cout << "New guy, assigned id " << newID << std::endl;
+	else
+	{
+		--newID;
+		SendMaxPlayers(addr);
+	}
 }
 
 void ServerApp::SendDisconnectionNotification(SystemAddress& addr)
@@ -169,4 +187,17 @@ void ServerApp::UpdatePosition( SystemAddress& addr, float x_, float y_ )
 
     itr->second.x_ = x_;
     itr->second.y_ = y_;
+}
+
+// Assignment 2
+void ServerApp::SendMaxPlayers(SystemAddress & addr)
+{
+	unsigned char msgid = ID_MAX_PLAYERS;
+
+	RakNet::BitStream bs;
+	bs.Write(msgid);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, addr, false);
+
+	bs.Reset();
 }

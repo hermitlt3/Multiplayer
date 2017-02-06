@@ -6,7 +6,7 @@
 #include "ship.h"
 #include "missile.h"
 
-
+#include <iostream>
 Missile::Missile(char* filename, float x, float y, float w, int shipid ) :
 	angular_velocity(0)
 {
@@ -58,47 +58,14 @@ bool Missile::Update(std::vector<Ship*> &shiplist, float timedelta)
 	{
 		if( HasCollided( (*(*thisship)) ) )
 		{
+			// Assignment 2 
+			if (ownerid == (*thisship)->GetID())
+				continue;
+			(*thisship)->SetHealth((*thisship)->GetHealth() - 1);
+			std::cout << (*thisship)->GetHealth() << std::endl;
+
 			// if both are stuck
 			return true;
-
-			/*
-			if( GetAbsoluteMag( velocity_y_ ) > GetAbsoluteMag( (*thisship)->velocity_y_ ) )
-			{
-				// asteroid transfers vel to ship
-				(*thisship)->velocity_y_ += velocity_y_/3;
-				velocity_y_ = - velocity_y_;
-			}
-			else
-			{
-				// ship transfers vel to asteroid
-				velocity_y_ += (*thisship)->velocity_y_/3;	
-				(*thisship)->velocity_y_ = -(*thisship)->velocity_y_;
-				
-			}
-
-			if( GetAbsoluteMag( velocity_x_ ) > GetAbsoluteMag( (*thisship)->velocity_x_ ) )
-			{
-				(*thisship)->velocity_x_ += velocity_x_/3;
-				velocity_x_ = - velocity_x_;
-			}
-			else
-			{
-				velocity_x_ += (*thisship)->velocity_x_/3;	
-				(*thisship)->velocity_x_ = -(*thisship)->velocity_x_;
-
-			}
-
-			if( velocity_x_ == 0.0 && (*thisship)->velocity_x_ == 0.0 )
-			{
-				if( velocity_y_ == 0.0 && (*thisship)->velocity_y_ == 0.0 )
-				{
-					// is very stuck
-					// gimpy reset asteroid location
-					x_ = 200;
-					y_ = 200;
-				}
-			}
-			*/
 		}
 	}
 

@@ -174,6 +174,7 @@ bool Application::Update()
 	{
 		if( mymissile->Update( ships_, timedelta ) )
 		{
+			CreateBoom(mymissile->GetX(), mymissile->GetY());
 			// have collision
 			delete mymissile;
 			mymissile = 0;
@@ -188,6 +189,18 @@ bool Application::Update()
 			// have collision
 			delete *missile;
 			missiles_.erase(missile);
+			break;
+		}
+	}
+
+	// Assignment 2
+	for (BoomList::iterator boom = booms_.begin();
+		boom != booms_.end(); boom++)
+	{
+		if ((*boom)->Update(booms_, timedelta))
+		{
+			delete *boom;
+			booms_.erase(boom);
 			break;
 		}
 	}
@@ -370,6 +383,7 @@ bool Application::Update()
 				missiles_.push_back( new Missile( "missile.png", x, y, w, id ) );
 			}
 			break;
+
 		case ID_UPDATEMISSILE:
 			{
 				float x,y,w;
@@ -401,6 +415,27 @@ bool Application::Update()
 				
 			}
 			break;
+
+			// Assignment 2
+		case ID_MAX_PLAYERS:
+		{
+							   std::cout << "hit the maximum player limit" << std::endl;
+							   rakpeer_->DeallocatePacket(packet);
+							   return true;
+		}
+			break;
+
+		case ID_NEWBOOM:
+		{
+						   float x, y;
+
+						   bs.Read(x);
+						   bs.Read(y);
+
+						   booms_.push_back(new Boom("boom.png", x, y));
+		}
+			break;
+			
 		default:
 			std::cout << "Unhandled Message Identifier: " << (int)msgid << std::endl;
 
@@ -482,6 +517,12 @@ void Application::Render()
 	for (itr2 = missiles_.begin(); itr2 != missiles_.end(); itr2++)
 	{
 		(*itr2)->Render();
+	}
+
+	BoomList::iterator itr3;
+	for (itr3 = booms_.begin(); itr3 != booms_.end(); itr3++)
+	{
+		(*itr3)->Render();
 	}
 
 	hge_->Gfx_EndScene();
@@ -610,4 +651,27 @@ void Application::CreateMissile(float x, float y, float w, int id)
 
 		have_missile = true;
 	}
+}
+
+// Assignment 2
+void Application::CreateBoom(float x, float y)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+	
+	// add new boom to list
+	booms_.push_back(new Boom("boom.png", x, y));
+
+
+	// send network command to add new missile
+	bs.Reset();
+	msgid = ID_NEWBOOM;
+	bs.Write(msgid);
+	bs.Write(x);
+	bs.Write(y);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+
+	have_missile = true;
+
 }
