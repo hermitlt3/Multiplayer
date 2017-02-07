@@ -93,6 +93,8 @@ class Application
 	void CollectHealth( int id );
 	void CollectEXP(int id);
 
+	void SwitchPositions();
+
 	void Reset();
 
 public:

@@ -101,6 +101,7 @@ void ServerApp::Loop()
 		case ID_UPDATELAST:
 		case ID_COLLECTHEALTH:
 		case ID_COLLECTEXP:
+		case ID_SWITCH:
 			bs.ResetReadPointer();
 			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;

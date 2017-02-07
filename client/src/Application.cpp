@@ -141,6 +141,7 @@ bool Application::Update()
         ships_.at( 0 )->Accelerate( -DEFAULT_ACCELERATION, timedelta );
     }
 
+
     if( hge_->Input_GetKeyState( HGEK_SPACE ) )
 	{
 		if( !keydown_enter )
@@ -176,6 +177,22 @@ bool Application::Update()
 		if (keydown_q)
 		{
 			keydown_q = false;
+		}
+	}
+
+	if (hge_->Input_GetKeyState(HGEK_W))
+	{
+		if (!keydown_w)
+		{
+			SwitchPositions();
+			keydown_w = true;
+		}
+	}
+	else
+	{
+		if (keydown_w)
+		{
+			keydown_w = false;
 		}
 	}
 
@@ -538,6 +555,63 @@ bool Application::Update()
 				break;
 
 				// Assignment 2
+			case ID_SWITCH:
+			{
+							  int shipid;
+							  float x, y;
+							  float server_x, server_y, server_w;
+							  float server_vel_x, server_vel_y, server_vel_angular;
+							  float x2, y2;
+							  float server_x2, server_y2, server_w2;
+							  float server_vel_x2, server_vel_y2, server_vel_angular2;
+							  bs.Read(shipid);
+
+							  for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+							  {
+								  if ((*itr)->GetID() == shipid)
+								  {
+									  std::cout << shipid << ", " << (*itr)->GetID() << ", " << ships_.at(0)->GetID() << std::endl;
+									  std::cout << (*itr)->GetX() << ", " << (*itr)->GetY() << std::endl;
+									  std::cout << ships_.at(0)->GetX() << ", " << ships_.at(0)->GetY() << std::endl;
+									  bs.Read(x);
+									  bs.Read(y);
+									  bs.Read(server_x);
+									  bs.Read(server_y);
+									  bs.Read(server_w);
+									  bs.Read(server_vel_x);
+									  bs.Read(server_vel_y);
+									  bs.Read(server_vel_angular);
+
+									  (*itr)->SetX(x);
+									  (*itr)->SetY(y);
+									  (*itr)->SetServerLocation(server_x, server_y, server_w);
+									  (*itr)->SetServerVelocity(server_vel_x, server_vel_y, server_vel_angular);
+									  (*itr)->DoInterpolateUpdate();
+
+									  bs.Read(x2);
+									  bs.Read(y2);
+									  bs.Read(server_x2);
+									  bs.Read(server_y2);
+									  bs.Read(server_w2);
+									  bs.Read(server_vel_x2);
+									  bs.Read(server_vel_y2);
+									  bs.Read(server_vel_angular2);
+
+									  ships_.at(0)->SetX(x2);
+									  ships_.at(0)->SetY(y2);
+									  ships_.at(0)->SetServerLocation(server_x2, server_y2, server_w2);
+									  ships_.at(0)->SetServerVelocity(server_vel_x2, server_vel_y2, server_vel_angular2);
+									  ships_.at(0)->DoInterpolateUpdate();
+
+									  std::cout << (*itr)->GetX() << ", " << (*itr)->GetY() << std::endl;
+									  std::cout << ships_.at(0)->GetX() << ", " << ships_.at(0)->GetY() << std::endl;
+									  break;
+								  }
+							  }
+
+			}
+				break;
+
 			case ID_MAX_PLAYERS:
 			{
 								   std::cout << "hit the maximum player limit" << std::endl;
@@ -822,7 +896,7 @@ bool Application::Update()
 void Application::Render()
 {
 	std::string fps;
-	char temp[BUFFERSIZE];
+	//char temp[BUFFERSIZE];
 
 	hge_->Gfx_BeginScene();
 	hge_->Gfx_Clear(0);
@@ -1186,15 +1260,18 @@ void Application::BombHit(int shipID)
 		if ((*itr)->GetID() == shipID) {
 
 			if ((*itr)->GetHealth() > 0) {
-				health = (*itr)->GetHealth() - 2;
-				(*itr)->SetHealth(health);
-				// send network command to add new missile
-				bs.Reset();
-				msgid = ID_MISSILEHIT;
-				bs.Write(msgid);
-				bs.Write(shipID);
-				bs.Write(health);
-				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+				if ((*itr)->GetID() != ships_.at(0)->GetID()) {
+					health = (*itr)->GetHealth() - 2;
+					(*itr)->SetHealth(health);
+					// send network command to add new missile
+					bs.Reset();
+					msgid = ID_MISSILEHIT;
+					bs.Write(msgid);
+					bs.Write(shipID);
+					bs.Write(health);
+					rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+				}
+
 			}
 			break;
 		}
@@ -1345,4 +1422,42 @@ void Application::Reset()
 	have_missile = false;
 	have_energyball = false;
 	have_last = false;
+}
+
+void Application::SwitchPositions()
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr) {
+		if ((*itr)->GetID() == ships_.at(0)->GetID())
+			continue;
+		else
+		{
+			bs.Reset();
+			msgid = ID_SWITCH;
+			bs.Write(msgid);
+			bs.Write((*itr)->GetID());
+			bs.Write(ships_.at(0)->GetX());
+			bs.Write(ships_.at(0)->GetY());
+			bs.Write(ships_.at(0)->GetServerX());
+			bs.Write(ships_.at(0)->GetServerY());
+			bs.Write(ships_.at(0)->GetServerW());
+			bs.Write(ships_.at(0)->GetServerVelocityX());
+			bs.Write(ships_.at(0)->GetServerVelocityY());
+			bs.Write(ships_.at(0)->GetAngularVelocity());
+
+			bs.Write((*itr)->GetX());
+			bs.Write((*itr)->GetY());
+			bs.Write((*itr)->GetServerX());
+			bs.Write((*itr)->GetServerY());
+			bs.Write((*itr)->GetServerW());
+			bs.Write((*itr)->GetServerVelocityX());
+			bs.Write((*itr)->GetServerVelocityY());
+			bs.Write((*itr)->GetAngularVelocity());
+
+			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			break;
+		}
+	}
 }
