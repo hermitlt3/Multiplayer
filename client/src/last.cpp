@@ -4,11 +4,11 @@
 #include "hgeSprite.h"
 
 #include "ship.h"
-#include "energyball.h"
+#include "last.h"
 
 #include <iostream>
-Energyball::Energyball(char* filename, float x, float y, float w, int shipid) :
-angular_velocity(5)
+Last::Last(char* filename, float x, float y, float w, int shipid) :
+angular_velocity(0)
 #ifdef INTERPOLATEMOVEMENT
 , server_w_(0)
 , client_w_(0)
@@ -20,8 +20,8 @@ angular_velocity(5)
 	HGE* hge = hgeCreate(HGE_VERSION);
 	tex_ = hge->Texture_Load(filename);
 	hge->Release();
-	sprite_.reset(new hgeSprite(tex_, 0, 0, 42, 42));
-	sprite_->SetHotSpot(21, 21);
+	sprite_.reset(new hgeSprite(tex_, 0, 0, 27, 27));
+	sprite_->SetHotSpot(13.5f, 13.5f);
 #ifdef INTERPOLATEMOVEMENT
 	x_ = server_x_ = client_x_ = x;
 	y_ = server_y_ = client_y_ = y;
@@ -40,22 +40,38 @@ angular_velocity(5)
 
 	xflip = false;
 	xflip = false;
+	wflip = false;
 	xmax = 50.f;
 	ymax = 50.f;
+	wmax = 10.f;
 }
 
-Energyball::~Energyball()
+Last::~Last()
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	hge->Texture_Free(tex_);
 	hge->Release();
 }
 
-Ship* Energyball::Update(std::vector<Ship*> &shiplist, float timedelta)
+Ship* Last::Update(std::vector<Ship*> &shiplist, float timedelta)
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	float pi = 3.141592654f * 2;
+	if (xmax < 300.f)
+		xmax += timedelta * 20.f;
+	if (ymax < 300.f)
+		ymax += timedelta * 20.f;
 
+	if (!wflip) {
+		angular_velocity -= 10.f * timedelta;
+		if (angular_velocity < -wmax)
+			wflip = true;
+	}
+	else if (wflip) {
+		angular_velocity += 10.f * timedelta;
+		if (angular_velocity > wmax)
+			wflip = false;
+	}
 	if (!xflip) {
 		server_velx_ -= 100 * timedelta;
 		velocity_x_ -= 100 * timedelta;
@@ -80,7 +96,6 @@ Ship* Energyball::Update(std::vector<Ship*> &shiplist, float timedelta)
 		if (server_vely_ > ymax && velocity_y_ > ymax)
 			yflip = false;
 	}
-
 	server_w_ += angular_velocity * timedelta;
 
 	if (server_w_ > pi)
@@ -177,12 +192,12 @@ Ship* Energyball::Update(std::vector<Ship*> &shiplist, float timedelta)
 	return nullptr;
 }
 
-void Energyball::Render()
+void Last::Render()
 {
 	sprite_->RenderEx(x_, y_, w_);
 }
 
-bool Energyball::HasCollided(Ship &ship)
+bool Last::HasCollided(Ship &ship)
 {
 	sprite_->GetBoundingBox(x_, y_, &collidebox);
 

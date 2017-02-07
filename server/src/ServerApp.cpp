@@ -81,9 +81,8 @@ void ServerApp::Loop()
 			break;
 
 		case ID_MOVEMENT:
-						
-		case ID_NEWMISSILE:
 
+		case ID_NEWMISSILE:
 		case ID_UPDATEMISSILE:
 						
 		// Assignment 2
@@ -91,14 +90,17 @@ void ServerApp::Loop()
 		case ID_MISSILEHIT:
 		case ID_BOMBHIT:
 		case ID_ENERGYBALLHIT:
+		case ID_LASTHIT:
 
 		case ID_NEWBOOM:
 		case ID_NEWBOMB:
 		case ID_NEWENERGYBALL:
-
 		case ID_UPDATEENERGYBALL:
 
+		case ID_NEWLAST:
+		case ID_UPDATELAST:
 		case ID_COLLECTHEALTH:
+		case ID_COLLECTEXP:
 			bs.ResetReadPointer();
 			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;

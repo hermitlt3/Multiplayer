@@ -32,6 +32,7 @@ Ship::Ship( int type, float locx_, float locy_ )
 , health(10)
 , active(true)
 , respawnTimer(3.f)
+, level(1)
 
 #ifdef INTERPOLATEMOVEMENT
 , server_w_( 0 )
@@ -242,6 +243,9 @@ void Ship::Render()
 		ss << "Health: " << health;
 		font_->printf(x_ + 5, y_ + 5, HGETEXT_LEFT, "%s", mytext_.c_str());
 		font_->printf(x_ + 5, y_ - 20, HGETEXT_LEFT, "%s", ss.str().c_str());
+		ss.str(""); 
+		ss << "Level: " << level;
+		font_->printf(x_ + 5, y_ + 15, HGETEXT_LEFT, "%s", ss.str().c_str());
 	}
 	else {
 		std::ostringstream ss;

@@ -12,6 +12,8 @@
 #include "textbox.h"
 #include "PowerupBaseClass.h"
 #include "Healthpack.h"
+#include "Exppack.h"
+#include "last.h"
 
 class HGE;
 class RakPeerInterface;
@@ -37,20 +39,20 @@ class Application
 	typedef std::vector<Timebomb*>				TimebombList;
 	typedef std::vector<Energyball*>			EnergyballList;
 	typedef std::vector<PowerupBaseClass*>		PowerupsList;
+	typedef std::vector<Last*>					LastList;
 
 	ShipList ships_; //!< List of all the ships in the universe
 
-	MissileList missiles_;
 	Missile* mymissile;
-
-	BoomList booms_;
-
-	TimebombList bombs_;
-
-	EnergyballList energyballs_;
 	Energyball* myenergyball;
+	Last* mylast;
 
+	MissileList missiles_;
+	BoomList booms_;
+	TimebombList bombs_;
+	EnergyballList energyballs_;
 	PowerupsList powerupslist;
+	LastList lastlist_;
 
 	TextBox	*fpsbox;
 	TextBox *databox;
@@ -62,7 +64,8 @@ class Application
 	
 	bool have_missile;
 	bool have_energyball;
-	
+	bool have_last;
+
 	bool keydown_enter;
 	bool keydown_q;
 	bool keydown_w;
@@ -80,13 +83,15 @@ class Application
 	void CreateBoom( float x, float y, float lifetime );
 	void CreateBomb( float x, float y, float explosionRadius );
 	void CreateEnergyBall(float x, float y, float w, int id);
+	void CreateLastWeapon(float x, float y, float w, int id);
 
 	void MissileHit( int id );
 	void BombHit( int id );
 	void EnergyBallHit( int id );
+	void LastHit(int id);
 
 	void CollectHealth( int id );
-	void CollectEXP(int id){};
+	void CollectEXP(int id);
 
 	void Reset();
 
