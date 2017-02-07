@@ -16,6 +16,7 @@ enum MyMsgIDs
 
 	// Assignment 2
 	ID_NEWBOOM,
+	ID_MISSILEHIT,
 	ID_MAX_PLAYERS
 };
 

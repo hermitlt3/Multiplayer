@@ -39,7 +39,7 @@ class Missile
 public:
 	Missile(char* filename, float x, float y, float w, int shipid);
 	~Missile();
-	bool Update(std::vector<Ship*> &shiplist, float timedelta);
+	Ship* Update(std::vector<Ship*> &shiplist, float timedelta);
 	void Render();
 	bool HasCollided( Ship &ship );
 

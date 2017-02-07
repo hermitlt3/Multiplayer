@@ -185,9 +185,10 @@ bool Application::Update()
 	for (MissileList::iterator missile = missiles_.begin();
 		missile != missiles_.end(); missile++)
 	{
-		if( (*missile)->Update(ships_, timedelta) )
+		if( Ship* shipHit = (*missile)->Update(ships_, timedelta) )
 		{
 			// have collision
+			MissileHit(shipHit->GetID());
 			delete *missile;
 			missiles_.erase(missile);
 			break;
@@ -205,7 +206,8 @@ bool Application::Update()
 			break;
 		}
 	}
-	if (!rejected) {
+	//if (!rejected) 
+	{
 		if (Packet* packet = rakpeer_->Receive())
 		{
 			RakNet::BitStream bs(packet->data, packet->length, false);
@@ -432,6 +434,20 @@ bool Application::Update()
 			}
 				break;
 
+			case ID_MISSILEHIT:
+			{
+								  int shipID;
+								  bs.Read(shipID);
+								  for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+								  {
+									  if ((*itr)->GetID() == shipID)
+									  {
+										  (*itr)->SetHealth((*itr)->GetHealth() - 1);
+										  break;
+									  }
+								  }
+			}
+				break;
 			case ID_NEWBOOM:
 			{
 							   float x, y;
@@ -678,6 +694,29 @@ void Application::CreateBoom(float x, float y)
 	bs.Write(msgid);
 	bs.Write(x);
 	bs.Write(y);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+}
+
+void Application::MissileHit(int shipID)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+	{
+		if ((*itr)->GetID() == shipID)
+		{
+			(*itr)->SetHealth((*itr)->GetHealth() - 1);
+			break;
+		}
+	}
+
+	// send network command to add new missile
+	bs.Reset();
+	msgid = ID_MISSILEHIT;
+	bs.Write(msgid);
+	bs.Write(shipID);
 
 	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
 }

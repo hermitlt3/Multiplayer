@@ -47,7 +47,7 @@ Missile::~Missile()
 	hge->Release();
 }
 
-bool Missile::Update(std::vector<Ship*> &shiplist, float timedelta)
+Ship* Missile::Update(std::vector<Ship*> &shiplist, float timedelta)
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	float pi = 3.141592654f*2;
@@ -140,14 +140,12 @@ bool Missile::Update(std::vector<Ship*> &shiplist, float timedelta)
 			// Assignment 2 
 			if (ownerid == (*thisship)->GetID())
 				continue;
-			(*thisship)->SetHealth((*thisship)->GetHealth() - 1);
-			std::cout << (*thisship)->GetHealth() << std::endl;
 
 			// if both are stuck
-			return true;
+			return (*thisship);
 		}
 	}
-	return false;
+	return nullptr;
 }
 
 void Missile::Render()

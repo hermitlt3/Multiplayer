@@ -54,6 +54,7 @@ class Application
 	bool RemoveMissile( float x, float y, float w, int id );
 	// Assignment 2
 	void CreateBoom( float x, float y );
+	void MissileHit( int id );
 
 public:
 	Application();
