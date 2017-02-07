@@ -8,7 +8,7 @@
 
 #include <iostream>
 Energyball::Energyball(char* filename, float x, float y, float w, int shipid) :
-angular_velocity(50)
+angular_velocity(5)
 #ifdef INTERPOLATEMOVEMENT
 , server_w_(0)
 , client_w_(0)
@@ -20,8 +20,8 @@ angular_velocity(50)
 	HGE* hge = hgeCreate(HGE_VERSION);
 	tex_ = hge->Texture_Load(filename);
 	hge->Release();
-	sprite_.reset(new hgeSprite(tex_, 0, 0, 40, 40));
-	sprite_->SetHotSpot(20, 20);
+	sprite_.reset(new hgeSprite(tex_, 0, 0, 42, 42));
+	sprite_->SetHotSpot(21, 21);
 #ifdef INTERPOLATEMOVEMENT
 	x_ = server_x_ = client_x_ = x;
 	y_ = server_y_ = client_y_ = y;
@@ -38,6 +38,10 @@ angular_velocity(50)
 	x_ += velocity_x_ * 0.5f;
 	y_ += velocity_y_ * 0.5f;
 
+	xflip = false;
+	xflip = false;
+	xmax = 50.f;
+	ymax = 50.f;
 }
 
 Energyball::~Energyball()
@@ -51,6 +55,27 @@ Ship* Energyball::Update(std::vector<Ship*> &shiplist, float timedelta)
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	float pi = 3.141592654f * 2;
+	
+	if (!xflip) {
+		server_velx_ -= 100 * timedelta;
+		if (server_velx_ < -xmax)
+			xflip = true;
+	}
+	else if (xflip) {
+		server_velx_ += 100 * timedelta;
+		if (server_velx_ > xmax)
+			xflip = false;
+	}
+	if (!yflip) {
+		server_vely_ -= 100 * timedelta;
+		if (server_vely_ < -ymax)
+			yflip = true;
+	}
+	else if (yflip) {
+		server_vely_ += 100 * timedelta;
+		if (server_vely_ > ymax)
+			yflip = false;
+	}
 
 	server_w_ += angular_velocity * timedelta;
 

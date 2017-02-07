@@ -24,6 +24,11 @@ class Energyball
 	int ownerid;
 	float angular_velocity;
 
+	bool xflip;
+	bool yflip; 
+	float xmax;
+	float ymax;
+
 #ifdef INTERPOLATEMOVEMENT
 	float server_x_;
 	float server_y_;

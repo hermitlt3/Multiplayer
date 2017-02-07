@@ -46,6 +46,7 @@ class Application
 	TimebombList bombs_;
 
 	EnergyballList energyballs_;
+	Energyball* myenergyball;
 
 	TextBox	*fpsbox;
 	TextBox *databox;

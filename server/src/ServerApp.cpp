@@ -90,6 +90,7 @@ void ServerApp::Loop()
 		case ID_NEWBOMB:
 		case ID_NEWENERGYBALL:
 		case ID_ENERGYBALLHIT:
+		case ID_UPDATEENERGYBALL:
 			bs.ResetReadPointer();
 			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;

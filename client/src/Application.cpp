@@ -563,7 +563,7 @@ bool Application::Update()
 								  bs.Read(y);
 								  bs.Read(w);
 
-								  energyballs_.push_back(new Energyball("asteroid.png", x, y, w, id));
+								  energyballs_.push_back(new Energyball("energyball.png", x, y, w, id));
 			}
 				break;
 
@@ -922,7 +922,7 @@ void Application::CreateEnergyBall(float x, float y, float w, int id)
 	if (id != ships_.at(0)->GetID())
 	{
 		// not my ship
-		energyballs_.push_back(new Energyball("asteroid.png", x, y, w, id));
+		energyballs_.push_back(new Energyball("energyball.png", x, y, w, id));
 	}
 	else
 	{
@@ -946,7 +946,7 @@ void Application::CreateEnergyBall(float x, float y, float w, int id)
 		}
 
 		// add new missile to list
-		myenergyball = new Energyball("asteroid.png", x, y, w, id);
+		myenergyball = new Energyball("energyball.png", x, y, w, id);
 
 		// send network command to add new missile
 		bs.Reset();
