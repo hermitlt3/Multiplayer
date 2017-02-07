@@ -8,6 +8,7 @@
 #include "missile.h"
 #include "boom.h"
 #include "timebomb.h"
+#include "energyball.h"
 #include "textbox.h"
 
 class HGE;
@@ -32,21 +33,34 @@ class Application
 	typedef std::vector<Missile*> MissileList;
 	typedef std::vector<Boom*> BoomList;
 	typedef std::vector<Timebomb*> TimebombList;
+	typedef std::vector<Energyball*> EnergyballList;
+
 	ShipList ships_; //!< List of all the ships in the universe
     Asteroid *asteroid;
+
 	MissileList missiles_;
 	Missile* mymissile;
+
 	BoomList booms_;
+
 	TimebombList bombs_;
+
+	EnergyballList energyballs_;
+
 	TextBox	*fpsbox;
 	TextBox *databox;
+
 	RakPeerInterface* rakpeer_;
 	unsigned int timer_;
 	int totalsent_;
 	int totalreceived_;
+	
 	bool have_missile;
+	bool have_energyball;
+	
 	bool keydown_enter;
 	bool keydown_q;
+	bool keydown_w;
 
 	bool rejected;
 
@@ -60,9 +74,11 @@ class Application
 	// Assignment 2
 	void CreateBoom( float x, float y, float lifetime );
 	void CreateBomb( float x, float y, float explosionRadius );
+	void CreateEnergyBall(float x, float y, float w, int id);
 
 	void MissileHit( int id );
 	void BombHit( int id );
+	void EnergyBallHit( int id );
 
 public:
 	Application();

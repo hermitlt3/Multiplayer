@@ -44,7 +44,7 @@ void ServerApp::Loop()
 			bs.Read(timestamp);
 			bs.Read(msgid);
 		}
-
+		std::cout << timestamp << std::endl;
 		switch (msgid)
 		{
 		case ID_NEW_INCOMING_CONNECTION:
@@ -88,6 +88,8 @@ void ServerApp::Loop()
 		case ID_BOMBHIT:
 		case ID_NEWBOOM:
 		case ID_NEWBOMB:
+		case ID_NEWENERGYBALL:
+		case ID_ENERGYBALLHIT:
 			bs.ResetReadPointer();
 			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;
@@ -196,6 +198,18 @@ void ServerApp::UpdatePosition( SystemAddress& addr, float x_, float y_ )
 void ServerApp::SendMaxPlayers(SystemAddress & addr)
 {
 	unsigned char msgid = ID_MAX_PLAYERS;
+
+	RakNet::BitStream bs;
+	bs.Write(msgid);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, addr, false);
+
+	bs.Reset();
+}
+
+void ServerApp::SpawnPowerUps(SystemAddress & addr)
+{
+	unsigned char msgid = ID_NEWPOWERUPS;
 
 	RakNet::BitStream bs;
 	bs.Write(msgid);

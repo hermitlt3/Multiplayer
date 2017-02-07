@@ -30,9 +30,12 @@ Application::Application() :
 	totalsent_(0),
 	totalreceived_(0),
 	mymissile(0),
+	myenergyball(0),
 	have_missile( false ),
+	have_energyball( false ),
 	keydown_enter( false ),
 	keydown_q( false ),
+	keydown_w( false ),
     asteroid( 0 )
 {
 }
@@ -170,6 +173,22 @@ bool Application::Update()
 		}
 	}
 
+	if (hge_->Input_GetKeyState(HGEK_W))
+	{
+		if (!keydown_w)
+		{
+			CreateEnergyBall(ships_.at(0)->GetX(), ships_.at(0)->GetY(), ships_.at(0)->GetW(), ships_.at(0)->GetID());
+			keydown_w = true;
+		}
+	}
+	else
+	{
+		if (keydown_w)
+		{
+			keydown_w = false;
+		}
+	}
+
     // update ships
 	for (ShipList::iterator ship = ships_.begin();
 		ship != ships_.end(); ship++)
@@ -200,6 +219,7 @@ bool Application::Update()
 		}
 	}
 
+
 	for (MissileList::iterator missile = missiles_.begin();
 		missile != missiles_.end(); missile++)
 	{
@@ -213,7 +233,31 @@ bool Application::Update()
 		}
 	}
 
+	if (myenergyball)
+	{
+		if (myenergyball->Update(ships_, timedelta))
+		{
+			CreateBoom(myenergyball->GetX(), myenergyball->GetY(), 0.5f);
+			// have collision
+			delete myenergyball;
+			myenergyball = 0;
+		}
+	}
+
 	// Assignment 2
+	for (EnergyballList::iterator energyball = energyballs_.begin();
+		energyball != energyballs_.end(); energyball++)
+	{
+		if (Ship* shipHit = (*energyball)->Update(ships_, timedelta))
+		{
+			// have collision
+			EnergyBallHit(shipHit->GetID());
+			delete *energyball;
+			energyballs_.erase(energyball);
+			break;
+		}
+	}
+
 	for (BoomList::iterator boom = booms_.begin();
 		boom != booms_.end(); boom++)
 	{
@@ -477,6 +521,7 @@ bool Application::Update()
 			}
 				break;
 
+			case ID_ENERGYBALLHIT:
 			case ID_MISSILEHIT:
 			{
 								  int shipID;
@@ -508,6 +553,59 @@ bool Application::Update()
 
 			}
 				break;
+			case ID_NEWENERGYBALL:
+			{
+								  float x, y, w;
+								  int id;
+
+								  bs.Read(id);
+								  bs.Read(x);
+								  bs.Read(y);
+								  bs.Read(w);
+
+								  energyballs_.push_back(new Energyball("asteroid.png", x, y, w, id));
+			}
+				break;
+
+			case ID_UPDATEENERGYBALL:
+			{
+									 float server_x, server_y, server_w;
+									 float server_vel_x, server_vel_y, server_vel_angular;
+									 int id;
+									 char deleted;
+
+									 bs.Read(id);
+									 bs.Read(deleted);
+
+									 for (EnergyballList::iterator itr = energyballs_.begin(); itr != energyballs_.end(); ++itr)
+									 {
+										 if ((*itr)->GetOwnerID() == id)
+										 {
+											 if (deleted)
+											 {
+												 delete *itr;
+												 energyballs_.erase(itr);
+											 }
+											 else
+											 {
+												 bs.Read(server_x);
+												 bs.Read(server_y);
+												 bs.Read(server_w);
+												 bs.Read(server_vel_x);
+												 bs.Read(server_vel_y);
+												 bs.Read(server_vel_angular);
+
+												 (*itr)->SetServerLocation(server_x, server_y, server_w);
+												 (*itr)->SetServerVelocity(server_vel_x, server_vel_y, server_vel_angular);
+												 (*itr)->DoInterpolateUpdate();
+											 }
+											 break;
+										 }
+									 }
+
+			}
+				break;
+
 			case ID_NEWBOOM:
 			{
 							   float x, y, lifetime;
@@ -563,6 +661,25 @@ bool Application::Update()
 
 				rakpeer_->Send(&bs3, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
 			}
+
+			if (myenergyball)
+			{
+				RakNet::BitStream bs4;
+				unsigned char msgid3 = ID_UPDATEENERGYBALL;
+				unsigned char deleted = 0;
+				bs4.Write(msgid3);
+				bs4.Write(myenergyball->GetOwnerID());
+				bs4.Write(deleted);
+				bs4.Write(myenergyball->GetServerX());
+				bs4.Write(myenergyball->GetServerY());
+				bs4.Write(myenergyball->GetServerW());
+				bs4.Write(myenergyball->GetServerVelocityX());
+				bs4.Write(myenergyball->GetServerVelocityY());
+				bs4.Write(myenergyball->GetAngularVelocity());
+
+				rakpeer_->Send(&bs4, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
+
 		}
 	}
 	return false;
@@ -600,6 +717,10 @@ void Application::Render()
 	{
 		mymissile->Render();
 	}
+	if (myenergyball)
+	{
+		myenergyball->Render();
+	}
 	MissileList::iterator itr2;
 	for (itr2 = missiles_.begin(); itr2 != missiles_.end(); itr2++)
 	{
@@ -616,6 +737,12 @@ void Application::Render()
 	for (itr4 = bombs_.begin(); itr4 != bombs_.end(); itr4++)
 	{
 		(*itr4)->Render();
+	}
+
+	EnergyballList::iterator itr5;
+	for (itr5 = energyballs_.begin(); itr5 != energyballs_.end(); itr5++)
+	{
+		(*itr5)->Render();
 	}
 
 	hge_->Gfx_EndScene();
@@ -786,6 +913,56 @@ void Application::CreateBomb(float x, float y, float explosionRadius)
 
 }
 
+void Application::CreateEnergyBall(float x, float y, float w, int id)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+	unsigned char deleted = 0;
+
+	if (id != ships_.at(0)->GetID())
+	{
+		// not my ship
+		energyballs_.push_back(new Energyball("asteroid.png", x, y, w, id));
+	}
+	else
+	{
+		if (have_energyball)
+		{
+			//locate existing missile
+
+			// send network command to delete across all clients
+			deleted = 1;
+			msgid = ID_UPDATEENERGYBALL;
+			bs.Write(msgid);
+			bs.Write(id);
+			bs.Write(deleted);
+			bs.Write(x);
+			bs.Write(y);
+			bs.Write(w);
+
+			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+
+			have_energyball = false;
+		}
+
+		// add new missile to list
+		myenergyball = new Energyball("asteroid.png", x, y, w, id);
+
+		// send network command to add new missile
+		bs.Reset();
+		msgid = ID_NEWENERGYBALL;
+		bs.Write(msgid);
+		bs.Write(id);
+		bs.Write(x);
+		bs.Write(y);
+		bs.Write(w);
+
+		rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+
+		have_energyball = true;
+	}
+}
+
 void Application::MissileHit(int shipID)
 {
 	RakNet::BitStream bs;
@@ -825,6 +1002,28 @@ void Application::BombHit(int shipID)
 	// send network command to add new missile
 	bs.Reset();
 	msgid = ID_BOMBHIT;
+	bs.Write(msgid);
+	bs.Write(shipID);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+}
+
+void Application::EnergyBallHit(int shipID)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+	{
+		if ((*itr)->GetID() == shipID)
+		{
+			(*itr)->SetHealth((*itr)->GetHealth() - 1);
+			break;
+		}
+	}
+
+	bs.Reset();
+	msgid = ID_ENERGYBALLHIT;
 	bs.Write(msgid);
 	bs.Write(shipID);
 

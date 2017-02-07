@@ -36,6 +36,8 @@ class ServerApp
 
 	// Assignment 2
 	void SendMaxPlayers(SystemAddress & addr);
+	void SpawnPowerUps(SystemAddress & addr);
+
 public:
 	ServerApp();
 	~ServerApp();
