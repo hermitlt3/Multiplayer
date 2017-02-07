@@ -14,12 +14,12 @@ class Ship;
 class Missile
 {
 	HTEXTURE tex_; //!< Handle to the sprite's texture
-	std::auto_ptr<hgeSprite> sprite_; //!< The sprite used to display the ship
-	float x_; //!< The x-ordinate of the ship
-	float y_; //!< The y-ordinate of the ship
-	float w_; //!< The angular position of the ship
-	float velocity_x_; //!< The resolved velocity of the ship along the x-axis
-	float velocity_y_; //!< The resolved velocity of the ship along the y-axis
+	std::auto_ptr<hgeSprite> sprite_; //!< The sprite used to display the missile
+	float x_; //!< The x-ordinate of the missile
+	float y_; //!< The y-ordinate of the missile
+	float w_; //!< The angular position of the missile
+	float velocity_x_; //!< The resolved velocity of the missile along the x-axis
+	float velocity_y_; //!< The resolved velocity of the missile along the y-axis
 	hgeRect collidebox;
 	int ownerid;
 	float angular_velocity;

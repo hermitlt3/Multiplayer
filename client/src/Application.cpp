@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 
 #include "hge.h"
 
@@ -31,6 +32,7 @@ Application::Application() :
 	mymissile(0),
 	have_missile( false ),
 	keydown_enter( false ),
+	keydown_q( false ),
     asteroid( 0 )
 {
 }
@@ -152,6 +154,22 @@ bool Application::Update()
 		}
 	}
 
+	if (hge_->Input_GetKeyState(HGEK_Q))
+	{
+		if (!keydown_q)
+		{
+			CreateBomb(ships_.at(0)->GetX(), ships_.at(0)->GetY(), 3.f);
+			keydown_q = true;
+		}
+	}
+	else
+	{
+		if (keydown_q)
+		{
+			keydown_q = false;
+		}
+	}
+
     // update ships
 	for (ShipList::iterator ship = ships_.begin();
 		ship != ships_.end(); ship++)
@@ -175,7 +193,7 @@ bool Application::Update()
 	{
 		if( mymissile->Update( ships_, timedelta ) )
 		{
-			CreateBoom(mymissile->GetX(), mymissile->GetY());
+			CreateBoom(mymissile->GetX(), mymissile->GetY(), 0.5f);
 			// have collision
 			delete mymissile;
 			mymissile = 0;
@@ -199,13 +217,38 @@ bool Application::Update()
 	for (BoomList::iterator boom = booms_.begin();
 		boom != booms_.end(); boom++)
 	{
-		if ((*boom)->Update(booms_, timedelta))
+		if ((*boom)->Update(timedelta))
 		{
 			delete *boom;
 			booms_.erase(boom);
 			break;
 		}
 	}
+
+	for (TimebombList::iterator bomb = bombs_.begin();
+		bomb != bombs_.end(); bomb++)
+	{
+		std::vector<Ship*>temp;
+		temp = (*bomb)->Update(ships_, timedelta);
+		if (temp.size() > 0)
+		{
+			for (std::vector<Ship*>::iterator it = temp.begin(); it != temp.end(); ++it) {
+				BombHit((*it)->GetID());
+			}
+			CreateBoom((*bomb)->GetX(), (*bomb)->GetY(), 0.5f);
+			delete *bomb;
+			bombs_.erase(bomb);
+			break;
+		}
+		else if ((*bomb)->GetToDeleted()) 
+		{
+			CreateBoom((*bomb)->GetX(), (*bomb)->GetY(), 0.5f);
+			delete *bomb;
+			bombs_.erase(bomb);
+			break;
+		}
+	}
+
 	//if (!rejected) 
 	{
 		if (Packet* packet = rakpeer_->Receive())
@@ -448,14 +491,32 @@ bool Application::Update()
 								  }
 			}
 				break;
-			case ID_NEWBOOM:
+			case ID_BOMBHIT:
 			{
-							   float x, y;
+							 
+			}
+				break;
+			case ID_NEWBOMB:
+			{
+							   float x, y, explosionRadius;
 
 							   bs.Read(x);
 							   bs.Read(y);
+							   bs.Read(explosionRadius);
 
-							   booms_.push_back(new Boom("boom.png", x, y));
+							   bombs_.push_back(new Timebomb("bomb.png", x, y, explosionRadius));
+
+			}
+				break;
+			case ID_NEWBOOM:
+			{
+							   float x, y, lifetime;
+
+							   bs.Read(x);
+							   bs.Read(y);
+							   bs.Read(lifetime);
+
+							   booms_.push_back(new Boom("boom.png", x, y, lifetime));
 			}
 				break;
 
@@ -549,6 +610,12 @@ void Application::Render()
 	for (itr3 = booms_.begin(); itr3 != booms_.end(); itr3++)
 	{
 		(*itr3)->Render();
+	}
+
+	TimebombList::iterator itr4;
+	for (itr4 = bombs_.begin(); itr4 != bombs_.end(); itr4++)
+	{
+		(*itr4)->Render();
 	}
 
 	hge_->Gfx_EndScene();
@@ -680,13 +747,13 @@ void Application::CreateMissile(float x, float y, float w, int id)
 }
 
 // Assignment 2
-void Application::CreateBoom(float x, float y)
+void Application::CreateBoom(float x, float y, float lifetime)
 {
 	RakNet::BitStream bs;
 	unsigned char msgid;
 	
 	// add new boom to list
-	booms_.push_back(new Boom("boom.png", x, y));
+	booms_.push_back(new Boom("boom.png", x, y, lifetime));
 
 	// send network command to add new missile
 	bs.Reset();
@@ -694,8 +761,29 @@ void Application::CreateBoom(float x, float y)
 	bs.Write(msgid);
 	bs.Write(x);
 	bs.Write(y);
+	bs.Write(lifetime);
 
 	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+}
+
+void Application::CreateBomb(float x, float y, float explosionRadius)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+
+	// add new boom to list
+	bombs_.push_back(new Timebomb("bomb.png", x, y, explosionRadius));
+
+	// send network command to add new missile
+	bs.Reset();
+	msgid = ID_NEWBOMB;
+	bs.Write(msgid);
+	bs.Write(x);
+	bs.Write(y);
+	bs.Write(explosionRadius);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+
 }
 
 void Application::MissileHit(int shipID)
@@ -715,6 +803,28 @@ void Application::MissileHit(int shipID)
 	// send network command to add new missile
 	bs.Reset();
 	msgid = ID_MISSILEHIT;
+	bs.Write(msgid);
+	bs.Write(shipID);
+
+	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+}
+
+void Application::BombHit(int shipID)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
+	{
+		if ((*itr)->GetID() == shipID)
+		{
+			(*itr)->SetHealth((*itr)->GetHealth() - 2);
+			break;
+		}
+	}
+
+	// send network command to add new missile
+	bs.Reset();
+	msgid = ID_BOMBHIT;
 	bs.Write(msgid);
 	bs.Write(shipID);
 

@@ -246,7 +246,7 @@ void Ship::Render()
 	else {
 		std::ostringstream ss;
 		ss.precision(1);
-		ss << "Respawn in: " << respawnTimer;
+		ss << "Respawn in: " << (int)respawnTimer + 1;
 		font_->printf(x_ + 5, y_ + 5, HGETEXT_LEFT, "%s", ss.str().c_str());
 	}
 }

@@ -7,6 +7,7 @@
 #include "ship.h"
 #include "missile.h"
 #include "boom.h"
+#include "timebomb.h"
 #include "textbox.h"
 
 class HGE;
@@ -30,11 +31,13 @@ class Application
 	typedef std::vector<Ship*> ShipList;  //!< A list of ships
 	typedef std::vector<Missile*> MissileList;
 	typedef std::vector<Boom*> BoomList;
+	typedef std::vector<Timebomb*> TimebombList;
 	ShipList ships_; //!< List of all the ships in the universe
     Asteroid *asteroid;
 	MissileList missiles_;
 	Missile* mymissile;
 	BoomList booms_;
+	TimebombList bombs_;
 	TextBox	*fpsbox;
 	TextBox *databox;
 	RakPeerInterface* rakpeer_;
@@ -43,6 +46,8 @@ class Application
 	int totalreceived_;
 	bool have_missile;
 	bool keydown_enter;
+	bool keydown_q;
+
 	bool rejected;
 
 	bool Init();
@@ -53,8 +58,11 @@ class Application
 	void CreateMissile( float x, float y, float w, int id );
 	bool RemoveMissile( float x, float y, float w, int id );
 	// Assignment 2
-	void CreateBoom( float x, float y );
+	void CreateBoom( float x, float y, float lifetime );
+	void CreateBomb( float x, float y, float explosionRadius );
+
 	void MissileHit( int id );
+	void BombHit( int id );
 
 public:
 	Application();

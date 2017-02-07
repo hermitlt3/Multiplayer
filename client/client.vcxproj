@@ -97,6 +97,7 @@
     <ClCompile Include="src\missile.cpp" />
     <ClCompile Include="src\ship.cpp" />
     <ClCompile Include="src\textbox.cpp" />
+    <ClCompile Include="src\timebomb.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\share\config.h" />
@@ -108,6 +109,7 @@
     <ClInclude Include="src\missile.h" />
     <ClInclude Include="src\ship.h" />
     <ClInclude Include="src\textbox.h" />
+    <ClInclude Include="src\timebomb.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

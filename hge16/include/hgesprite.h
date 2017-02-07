@@ -49,6 +49,7 @@ public:
 
 	hgeRect*	GetBoundingBox(float x, float y, hgeRect *rect) const { rect->Set(x-hotX, y-hotY, x-hotX+width, y-hotY+height); return rect; }
 	hgeRect*	GetBoundingBoxEx(float x, float y, float rot, float hscale, float vscale,  hgeRect *rect) const;
+	hgeRect*	GetSelfDefinedBoundingBox(float x, float y, float halfWidth, float halfHeight, hgeRect* rect) { rect->Set(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight); return rect; }
 	float		GetWidth() const { return width; }
 	float		GetHeight() const { return height; }
 

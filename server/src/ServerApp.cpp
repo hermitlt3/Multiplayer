@@ -85,7 +85,9 @@ void ServerApp::Loop()
 		// Assignment 2
 		case ID_MAX_PLAYERS:
 		case ID_MISSILEHIT:
+		case ID_BOMBHIT:
 		case ID_NEWBOOM:
+		case ID_NEWBOMB:
 			bs.ResetReadPointer();
 			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;

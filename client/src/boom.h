@@ -18,11 +18,12 @@ class Boom
 	float x_; //!< The x-ordinate of the ship
 	float y_; //!< The y-ordinate of the ship
 	float timer_;
+	float lifetime_;
 
 public:
-	Boom(char* filename, float x, float y);
+	Boom(char* filename, float x, float y, float lifetime);
 	~Boom();
-	bool Update(std::vector<Boom*> &shiplist, float timedelta);
+	bool Update(float timedelta);
 	void Render();
 
 	void UpdateLoc(float x, float y)

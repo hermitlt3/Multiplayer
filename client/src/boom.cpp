@@ -6,16 +6,17 @@
 #include "boom.h"
 
 #include <iostream>
-Boom::Boom(char* filename, float x, float y)
+Boom::Boom(char* filename, float x, float y, float lifetime)
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	tex_ = hge->Texture_Load(filename);
 	hge->Release();
-	sprite_.reset(new hgeSprite(tex_, 0, 0, 40, 20));
-	sprite_->SetHotSpot(20, 10);
+	sprite_.reset(new hgeSprite(tex_, 0, 0, 40, 40));
+	sprite_->SetHotSpot(20, 20);
 	timer_ = 0.f;
 	x_ = x;
 	y_ = y;
+	lifetime_ = lifetime;
 }
 
 Boom::~Boom()
@@ -25,11 +26,11 @@ Boom::~Boom()
 	hge->Release();
 }
 
-bool Boom::Update(std::vector<Boom*> &shiplist, float timedelta)
+bool Boom::Update(float timedelta)
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	timer_ += timedelta;
-	if (timer_ > 1.0) {
+	if (timer_ > lifetime_) {
 		return true;
 	}
 	return false;
