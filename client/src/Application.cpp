@@ -35,8 +35,7 @@ Application::Application() :
 	have_energyball( false ),
 	keydown_enter( false ),
 	keydown_q( false ),
-	keydown_w( false ),
-    asteroid( 0 )
+	keydown_w( false )
 {
 }
 
@@ -76,7 +75,6 @@ bool Application::Init()
 
 	if(hge_->System_Initiate()) 
 	{
-        asteroid = new Asteroid( "asteroid.png" );
         
         fpsbox = new TextBox( "font1.fnt" );
 		fpsbox->SetPos( 5, 5 );
@@ -90,10 +88,10 @@ bool Application::Init()
         ships_.push_back( new Ship( ShipType, init_pos_x, init_pos_y ) );
         std::cout << "My Ship: type[" << ShipType << "] x[" << init_pos_x << "] y[" << init_pos_y << "]" << std::endl;
 		ships_.at(0)->SetName("My Ship");
-		if (rakpeer_->Startup(1,30,&SocketDescriptor(), 1))
+		if (rakpeer_->Startup(1, 30, &SocketDescriptor(), 1))
 		{
 			rakpeer_->SetOccasionalPing(true);
-            return rakpeer_->Connect( DFL_SERVER_IP, DFL_PORTNUMBER, 0, 0 );
+			return rakpeer_->Connect(DFL_SERVER_IP, DFL_PORTNUMBER, 0, 0);
 		}
 	}
 	rejected = false;
@@ -145,7 +143,11 @@ bool Application::Update()
 	{
 		if( !keydown_enter )
 		{
-			CreateMissile(ships_.at(0)->GetX(), ships_.at(0)->GetY(), ships_.at(0)->GetW(), ships_.at(0)->GetID());  
+			if (ships_.at(0)->GetLevel() > 1)
+				CreateMissile(ships_.at(0)->GetX(), ships_.at(0)->GetY(), ships_.at(0)->GetW(), ships_.at(0)->GetID());  
+			else
+				CreateEnergyBall(ships_.at(0)->GetX(), ships_.at(0)->GetY(), ships_.at(0)->GetW(), ships_.at(0)->GetID());
+
 			keydown_enter = true;
 		}
 	}
@@ -173,22 +175,6 @@ bool Application::Update()
 		}
 	}
 
-	if (hge_->Input_GetKeyState(HGEK_W))
-	{
-		if (!keydown_w)
-		{
-			CreateEnergyBall(ships_.at(0)->GetX(), ships_.at(0)->GetY(), ships_.at(0)->GetW(), ships_.at(0)->GetID());
-			keydown_w = true;
-		}
-	}
-	else
-	{
-		if (keydown_w)
-		{
-			keydown_w = false;
-		}
-	}
-
     // update ships
 	for (ShipList::iterator ship = ships_.begin();
 		ship != ships_.end(); ship++)
@@ -196,29 +182,18 @@ bool Application::Update()
 		(*ship)->Update(timedelta);
 	}
 
-    // update asteroid
-    if( asteroid )
-    {
-        if( asteroid->Update( ships_, timedelta ) )
-        {
-            //	delete asteroid;
-            //	asteroid = 0;
-        }
-    }
-
-
 	// update missiles
 	if( mymissile )
 	{
-		if( mymissile->Update( ships_, timedelta ) )
+		if (Ship* shipHit = (mymissile->Update(ships_, timedelta)))
 		{
 			CreateBoom(mymissile->GetX(), mymissile->GetY(), 0.5f);
+			MissileHit(shipHit->GetID());
 			// have collision
 			delete mymissile;
 			mymissile = 0;
 		}
 	}
-
 
 	for (MissileList::iterator missile = missiles_.begin();
 		missile != missiles_.end(); missile++)
@@ -235,8 +210,9 @@ bool Application::Update()
 
 	if (myenergyball)
 	{
-		if (myenergyball->Update(ships_, timedelta))
+		if (Ship* shipHit = myenergyball->Update(ships_, timedelta))
 		{
+			EnergyBallHit(shipHit->GetID());
 			CreateBoom(myenergyball->GetX(), myenergyball->GetY(), 0.5f);
 			// have collision
 			delete myenergyball;
@@ -265,6 +241,22 @@ bool Application::Update()
 		{
 			delete *boom;
 			booms_.erase(boom);
+			break;
+		}
+	}
+
+	for (PowerupsList::iterator powerup = powerupslist.begin();
+		powerup != powerupslist.end(); powerup++)
+	{
+		if (Ship* shipHit = (*powerup)->Update(ships_, timedelta))
+		{
+			if ((*powerup)->returnType() == PowerupBaseClass::HEALTH)
+				CollectHealth(shipHit->GetID());
+			else if ((*powerup)->returnType() == PowerupBaseClass::EXP)
+				CollectEXP(shipHit->GetID());
+
+			delete *powerup;
+			powerupslist.erase(powerup);
 			break;
 		}
 	}
@@ -366,6 +358,8 @@ bool Application::Update()
 							   }
 							   else
 							   {
+								   ships_.at(0)->Reset();
+								   Reset();
 								   float x_, y_;
 								   int type_;
 								   std::string temp;
@@ -521,26 +515,26 @@ bool Application::Update()
 			}
 				break;
 
+			case ID_BOMBHIT:
 			case ID_ENERGYBALLHIT:
 			case ID_MISSILEHIT:
+			case ID_COLLECTHEALTH:
 			{
 								  int shipID;
+								  int health;
 								  bs.Read(shipID);
+								  bs.Read(health);
 								  for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
 								  {
 									  if ((*itr)->GetID() == shipID)
-									  {
-										  (*itr)->SetHealth((*itr)->GetHealth() - 1);
+									  { 
+										  (*itr)->SetHealth(health);
 										  break;
 									  }
 								  }
 			}
 				break;
-			case ID_BOMBHIT:
-			{
-							 
-			}
-				break;
+
 			case ID_NEWBOMB:
 			{
 							   float x, y, explosionRadius;
@@ -618,13 +612,30 @@ bool Application::Update()
 			}
 				break;
 
+			case ID_NEWPOWERUPS:
+			{
+								   int a;
+								   float posX, posY;
+								   bs.Read(a);
+								   bs.Read(posX);
+								   bs.Read(posY);
+
+								   if (static_cast<PowerupBaseClass::POWERUP_TYPE>(a) == PowerupBaseClass::HEALTH) {
+									   powerupslist.push_back(new HealthPack("healthpack.png", posX, posY, 1.f));
+								   }
+								   else if (static_cast<PowerupBaseClass::POWERUP_TYPE>(a) == PowerupBaseClass::EXP) {
+									   powerupslist.push_back(new HealthPack("exp.png", posX, posY, 1.f));
+								   }
+			}
+				break;
+
 			default:
 				std::cout << "Unhandled Message Identifier: " << (int)msgid << std::endl;
 
 			}
 			rakpeer_->DeallocatePacket(packet);
 		}
-
+		
 		if (RakNet::GetTime() - timer_ > 100)
 		{
 			timer_ = RakNet::GetTime();
@@ -699,12 +710,6 @@ void Application::Render()
 	hge_->Gfx_BeginScene();
 	hge_->Gfx_Clear(0);
 
-    // render astroid
-    if( asteroid )
-    {
-        asteroid->Render( );
-    }
-
     // render spaceships
 	ShipList::iterator itr;
 	for (itr = ships_.begin(); itr != ships_.end(); itr++)
@@ -743,6 +748,12 @@ void Application::Render()
 	for (itr5 = energyballs_.begin(); itr5 != energyballs_.end(); itr5++)
 	{
 		(*itr5)->Render();
+	}
+
+	PowerupsList::iterator itr6;
+	for (itr6 = powerupslist.begin(); itr6 != powerupslist.end(); itr6++)
+	{
+		(*itr6)->Render();
 	}
 
 	hge_->Gfx_EndScene();
@@ -968,64 +979,131 @@ void Application::MissileHit(int shipID)
 	RakNet::BitStream bs;
 	unsigned char msgid;
 
-	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
-	{
-		if ((*itr)->GetID() == shipID)
-		{
-			(*itr)->SetHealth((*itr)->GetHealth() - 1);
+	int health;
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr) {
+		if ((*itr)->GetID() == shipID && 
+			shipID != ships_.at(0)->GetID()) {
+
+			if ((*itr)->GetHealth() > 0) {
+				health = (*itr)->GetHealth() - 1;
+				(*itr)->SetHealth(health);
+				// send network command to add new missile
+				bs.Reset();
+				msgid = ID_MISSILEHIT;
+				bs.Write(msgid);
+				bs.Write(shipID);
+				bs.Write(health);
+				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
 			break;
 		}
 	}
 
-	// send network command to add new missile
-	bs.Reset();
-	msgid = ID_MISSILEHIT;
-	bs.Write(msgid);
-	bs.Write(shipID);
-
-	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 void Application::BombHit(int shipID)
 {
 	RakNet::BitStream bs;
 	unsigned char msgid;
-	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
-	{
-		if ((*itr)->GetID() == shipID)
-		{
-			(*itr)->SetHealth((*itr)->GetHealth() - 2);
+	int health;
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr) {
+		if ((*itr)->GetID() == shipID) {
+
+			if ((*itr)->GetHealth() > 0) {
+				health = (*itr)->GetHealth() - 2;
+				(*itr)->SetHealth(health);
+				// send network command to add new missile
+				bs.Reset();
+				msgid = ID_MISSILEHIT;
+				bs.Write(msgid);
+				bs.Write(shipID);
+				bs.Write(health);
+				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
 			break;
 		}
 	}
-
-	// send network command to add new missile
-	bs.Reset();
-	msgid = ID_BOMBHIT;
-	bs.Write(msgid);
-	bs.Write(shipID);
-
-	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
 }
 
 void Application::EnergyBallHit(int shipID)
 {
 	RakNet::BitStream bs;
 	unsigned char msgid;
+	int health;
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr) {
+		if ((*itr)->GetID() == shipID &&
+			shipID != ships_.at(0)->GetID()) {
 
-	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
-	{
-		if ((*itr)->GetID() == shipID)
-		{
-			(*itr)->SetHealth((*itr)->GetHealth() - 1);
+			if ((*itr)->GetHealth() > 0) {
+				health = (*itr)->GetHealth() - 1;
+				(*itr)->SetHealth(health);
+				// send network command to add new missile
+				bs.Reset();
+				msgid = ID_MISSILEHIT;
+				bs.Write(msgid);
+				bs.Write(shipID);
+				bs.Write(health);
+				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
 			break;
 		}
 	}
+}
 
-	bs.Reset();
-	msgid = ID_ENERGYBALLHIT;
-	bs.Write(msgid);
-	bs.Write(shipID);
+void Application::CollectHealth(int shipID)
+{
+	RakNet::BitStream bs;
+	unsigned char msgid;
+	int health;
 
-	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+	for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr) {
+		if ((*itr)->GetID() == shipID &&
+			shipID == ships_.at(0)->GetID()) {
+
+				health = (*itr)->GetHealth() + 1;
+				(*itr)->SetHealth(health);
+				// send network command to add new missile
+				bs.Reset();
+				msgid = ID_COLLECTHEALTH;
+				bs.Write(msgid);
+				bs.Write(shipID);
+				bs.Write(health);
+				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
+			break;
+		}
+	}
+}
+
+void Application::Reset()
+{
+	while (missiles_.size() > 0)
+	{
+		Missile *m = missiles_.back();
+		delete m;
+		missiles_.pop_back();
+	}
+	while (booms_.size() > 0)
+	{
+		Boom *m = booms_.back();
+		delete m;
+		booms_.pop_back();
+	}
+	while (bombs_.size() > 0)
+	{
+		Timebomb *m = bombs_.back();
+		delete m;
+		bombs_.pop_back();
+	}
+	while (energyballs_.size() > 0)
+	{
+		Energyball *m = energyballs_.back();
+		delete m;
+		energyballs_.pop_back();
+	}
+	while (powerupslist.size() > 0)
+	{
+		PowerupBaseClass* m = powerupslist.back();
+		delete m;
+		powerupslist.pop_back();
+	}
 }

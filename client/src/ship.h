@@ -46,6 +46,7 @@ class Ship
 
 	// Assignment 2
 	int health;
+	int level;
 	bool active;
 	float respawnTimer;
 
@@ -131,7 +132,13 @@ public:
 	int GetHealth() { return health; }
 	void SetHealth(int health) { this->health = health; }
 
+	int GetLevel() { return level; }
+	void SetLevel(int level) { this->level = level; }
 
+	void Reset() {
+		level = 1;
+		health = 10;
+	}
     // Lab Task 2 : add new member functions here
 #ifdef INTERPOLATEMOVEMENT
     void SetServerLocation( float x, float y, float w ) {

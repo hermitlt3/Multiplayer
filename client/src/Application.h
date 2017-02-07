@@ -10,6 +10,8 @@
 #include "timebomb.h"
 #include "energyball.h"
 #include "textbox.h"
+#include "PowerupBaseClass.h"
+#include "Healthpack.h"
 
 class HGE;
 class RakPeerInterface;
@@ -29,14 +31,14 @@ static const float DEFAULT_ACCELERATION = 50.0f;
 class Application
 {
 	HGE* hge_; //!< Instance of the internal graphics engine
-	typedef std::vector<Ship*> ShipList;  //!< A list of ships
-	typedef std::vector<Missile*> MissileList;
-	typedef std::vector<Boom*> BoomList;
-	typedef std::vector<Timebomb*> TimebombList;
-	typedef std::vector<Energyball*> EnergyballList;
+	typedef std::vector<Ship*>					ShipList;  //!< A list of ships
+	typedef std::vector<Missile*>				MissileList;
+	typedef std::vector<Boom*>					BoomList;
+	typedef std::vector<Timebomb*>				TimebombList;
+	typedef std::vector<Energyball*>			EnergyballList;
+	typedef std::vector<PowerupBaseClass*>		PowerupsList;
 
 	ShipList ships_; //!< List of all the ships in the universe
-    Asteroid *asteroid;
 
 	MissileList missiles_;
 	Missile* mymissile;
@@ -47,6 +49,8 @@ class Application
 
 	EnergyballList energyballs_;
 	Energyball* myenergyball;
+
+	PowerupsList powerupslist;
 
 	TextBox	*fpsbox;
 	TextBox *databox;
@@ -80,6 +84,11 @@ class Application
 	void MissileHit( int id );
 	void BombHit( int id );
 	void EnergyBallHit( int id );
+
+	void CollectHealth( int id );
+	void CollectEXP(int id){};
+
+	void Reset();
 
 public:
 	Application();

@@ -94,8 +94,10 @@
     <ClCompile Include="src\asteroid.cpp" />
     <ClCompile Include="src\boom.cpp" />
     <ClCompile Include="src\energyball.cpp" />
+    <ClCompile Include="src\Healthpack.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\missile.cpp" />
+    <ClCompile Include="src\PowerupBaseClass.cpp" />
     <ClCompile Include="src\ship.cpp" />
     <ClCompile Include="src\textbox.cpp" />
     <ClCompile Include="src\timebomb.cpp" />
@@ -108,7 +110,9 @@
     <ClInclude Include="src\boom.h" />
     <ClInclude Include="src\energyball.h" />
     <ClInclude Include="src\Globals.h" />
+    <ClInclude Include="src\Healthpack.h" />
     <ClInclude Include="src\missile.h" />
+    <ClInclude Include="src\PowerupBaseClass.h" />
     <ClInclude Include="src\ship.h" />
     <ClInclude Include="src\textbox.h" />
     <ClInclude Include="src\timebomb.h" />

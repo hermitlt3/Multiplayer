@@ -36,7 +36,11 @@ class ServerApp
 
 	// Assignment 2
 	void SendMaxPlayers(SystemAddress & addr);
-	void SpawnPowerUps(SystemAddress & addr);
+	void SpawnPowerUps();
+
+	float fixedTime;		// for deltaTime
+	float randomTime;		// generate random time
+	float timer;			// damn timer
 
 public:
 	ServerApp();

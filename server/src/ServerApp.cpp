@@ -11,6 +11,7 @@
 #include "ServerApp.h"
 
 #define MAX_PLAYERS		2
+#define MAX_POWERUP		2
 
 ServerApp::ServerApp() : 
 	rakpeer_(RakNetworkFactory::GetRakPeerInterface()),
@@ -20,6 +21,9 @@ ServerApp::ServerApp() :
     rakpeer_->SetMaximumIncomingConnections( DFL_MAX_CONNECTION );
 	rakpeer_->SetOccasionalPing(true);
 	std::cout << "Server Started" << std::endl;
+	fixedTime = 0.f;
+	timer = 0.f;
+	randomTime = (float)(rand() % 5) + 10.f;
 }
 
 ServerApp::~ServerApp()
@@ -30,6 +34,14 @@ ServerApp::~ServerApp()
 
 void ServerApp::Loop()
 {
+	float dt = (RakNet::GetTime() - fixedTime) / 1000.f;
+	fixedTime = RakNet::GetTime();
+	timer += dt;
+	if (timer > randomTime) {
+		timer = 0.f;
+		randomTime = (float)(rand() % 5) + 10.f;
+		SpawnPowerUps();
+	}
 	if (Packet* packet = rakpeer_->Receive())
 	{
 		RakNet::BitStream bs(packet->data, packet->length, false);
@@ -44,7 +56,7 @@ void ServerApp::Loop()
 			bs.Read(timestamp);
 			bs.Read(msgid);
 		}
-		std::cout << timestamp << std::endl;
+
 		switch (msgid)
 		{
 		case ID_NEW_INCOMING_CONNECTION:
@@ -69,28 +81,24 @@ void ServerApp::Loop()
 			break;
 
 		case ID_MOVEMENT:
-			// hint : movement stuffs goes here!
-				bs.ResetReadPointer();
-				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
-			break;
+						
 		case ID_NEWMISSILE:
-				bs.ResetReadPointer();
-				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
-			break;
+
 		case ID_UPDATEMISSILE:
-				bs.ResetReadPointer();
-				rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
-			break;
-		
+						
 		// Assignment 2
 		case ID_MAX_PLAYERS:
 		case ID_MISSILEHIT:
 		case ID_BOMBHIT:
+		case ID_ENERGYBALLHIT:
+
 		case ID_NEWBOOM:
 		case ID_NEWBOMB:
 		case ID_NEWENERGYBALL:
-		case ID_ENERGYBALLHIT:
+
 		case ID_UPDATEENERGYBALL:
+
+		case ID_COLLECTHEALTH:
 			bs.ResetReadPointer();
 			rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, packet->systemAddress, true);
 			break;
@@ -208,14 +216,23 @@ void ServerApp::SendMaxPlayers(SystemAddress & addr)
 	bs.Reset();
 }
 
-void ServerApp::SpawnPowerUps(SystemAddress & addr)
+void ServerApp::SpawnPowerUps()
 {
 	unsigned char msgid = ID_NEWPOWERUPS;
 
 	RakNet::BitStream bs;
+
+	float randomPosX = (float)(rand() % 500 + 100);
+	float randomPosY = (float)(rand() % 400 + 100);
+	int randomType = (int)(rand() % MAX_POWERUP);
+
 	bs.Write(msgid);
+	bs.Write(randomType);
+	bs.Write(randomPosX);
+	bs.Write(randomPosY);
 
-	rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, addr, false);
-
+	for (ClientMap::iterator itr = clients_.begin(); itr != clients_.end(); ++itr) {
+		rakpeer_->Send(&bs, HIGH_PRIORITY, RELIABLE_ORDERED, 0, itr->first, false);
+	}
 	bs.Reset();
 }
