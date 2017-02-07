@@ -47,6 +47,7 @@ class Ship
 	// Assignment 2
 	int health;
 	bool active;
+	float respawnTimer;
 
     // Lab Task 2 : add for interpolation
 #ifdef INTERPOLATEMOVEMENT

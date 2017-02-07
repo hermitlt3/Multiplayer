@@ -31,6 +31,7 @@ Ship::Ship( int type, float locx_, float locy_ )
 // Assignment 2
 , health(10)
 , active(true)
+, respawnTimer(3.f)
 
 #ifdef INTERPOLATEMOVEMENT
 , server_w_( 0 )
@@ -123,92 +124,104 @@ void Ship::Update(float timedelta)
 {
 	HGE* hge = hgeCreate(HGE_VERSION);
 	float pi = 3.141592654f*2;
+	if (active) {
+		server_w_ += angular_velocity * timedelta;
 
-	server_w_ += angular_velocity * timedelta;
+		if (server_w_ > pi)
+			server_w_ -= pi;
 
-	if (server_w_ > pi)
-		server_w_ -= pi;
+		if (server_w_ < 0.0f)
+			server_w_ += pi;
 
-	if (server_w_ < 0.0f)
-		server_w_ += pi;
+		client_w_ += angular_velocity * timedelta;
 
-	client_w_ += angular_velocity * timedelta;
+		if (client_w_ > pi)
+			client_w_ -= pi;
 
-	if (client_w_ > pi)
-		client_w_ -= pi;
+		if (client_w_ < 0.0f)
+			client_w_ += pi;
 
-	if (client_w_ < 0.0f)
-		client_w_ += pi;
+		w_ = ratio_ * server_w_ + (1 - ratio_) * client_w_;
 
-	w_ = ratio_ * server_w_ + (1 - ratio_) * client_w_;
+		if (w_ > pi)
+			w_ -= pi;
 
-	if (w_ > pi)
-		w_ -= pi;
+		if (w_ < 0.0f)
+			w_ += pi;
 
-	if (w_ < 0.0f)
-		w_ += pi;
-
-	float screenwidth = static_cast<float>(hge->System_GetState(HGE_SCREENWIDTH));
-	float screenheight = static_cast<float>(hge->System_GetState(HGE_SCREENHEIGHT));
-	float spritewidth = sprite_->GetWidth();
-	float spriteheight = sprite_->GetHeight();
-
-
-	server_x_ += server_velx_ * timedelta;
-	server_y_ += server_vely_ * timedelta;
-
-	// Deadreckon
-	if (server_x_ < -spritewidth/2)
-		server_x_ += screenwidth + spritewidth;
-	else if (server_x_ > screenwidth + spritewidth/2)
-		server_x_ -= screenwidth + spritewidth;
-
-	if (server_y_ < -spriteheight/2)
-		server_y_ += screenheight + spriteheight;
-	else if (server_y_ > screenheight + spriteheight/2)
-		server_y_ -= screenheight + spriteheight;
-	
-
-	client_x_ += velocity_x_ * timedelta;
-	client_y_ += velocity_y_ * timedelta;
-
-	// Deadreckon
-	if (client_x_ < -spritewidth/2)
-		client_x_ += screenwidth + spritewidth;
-	else if (client_x_ > screenwidth + spritewidth/2)
-		client_x_ -= screenwidth + spritewidth;
-
-	if (client_y_ < -spriteheight/2)
-		client_y_ += screenheight + spriteheight;
-	else if (client_y_ > screenheight + spriteheight/2)
-		client_y_ -= screenheight + spriteheight;
+		float screenwidth = static_cast<float>(hge->System_GetState(HGE_SCREENWIDTH));
+		float screenheight = static_cast<float>(hge->System_GetState(HGE_SCREENHEIGHT));
+		float spritewidth = sprite_->GetWidth();
+		float spriteheight = sprite_->GetHeight();
 
 
-	x_ = ratio_ * server_x_ + (1 - ratio_) * client_x_;
-	y_ = ratio_ * server_y_ + (1 - ratio_) * client_y_;
+		server_x_ += server_velx_ * timedelta;
+		server_y_ += server_vely_ * timedelta;
 
-	if (ratio_ < 1)
-	{
-		ratio_ += timedelta *4;
-		if (ratio_ > 1)
-			ratio_ = 1;
+		// Deadreckon
+		if (server_x_ < -spritewidth / 2)
+			server_x_ += screenwidth + spritewidth;
+		else if (server_x_ > screenwidth + spritewidth / 2)
+			server_x_ -= screenwidth + spritewidth;
+
+		if (server_y_ < -spriteheight / 2)
+			server_y_ += screenheight + spriteheight;
+		else if (server_y_ > screenheight + spriteheight / 2)
+			server_y_ -= screenheight + spriteheight;
+
+
+		client_x_ += velocity_x_ * timedelta;
+		client_y_ += velocity_y_ * timedelta;
+
+		// Deadreckon
+		if (client_x_ < -spritewidth / 2)
+			client_x_ += screenwidth + spritewidth;
+		else if (client_x_ > screenwidth + spritewidth / 2)
+			client_x_ -= screenwidth + spritewidth;
+
+		if (client_y_ < -spriteheight / 2)
+			client_y_ += screenheight + spriteheight;
+		else if (client_y_ > screenheight + spriteheight / 2)
+			client_y_ -= screenheight + spriteheight;
+
+
+		x_ = ratio_ * server_x_ + (1 - ratio_) * client_x_;
+		y_ = ratio_ * server_y_ + (1 - ratio_) * client_y_;
+
+		if (ratio_ < 1)
+		{
+			ratio_ += timedelta * 4;
+			if (ratio_ > 1)
+				ratio_ = 1;
+		}
+
+		if (x_ < -spritewidth / 2)
+			x_ += screenwidth + spritewidth;
+		else if (x_ > screenwidth + spritewidth / 2)
+			x_ -= screenwidth + spritewidth;
+
+		if (y_ < -spriteheight / 2)
+			y_ += screenheight + spriteheight;
+		else if (y_ > screenheight + spriteheight / 2)
+			y_ -= screenheight + spriteheight;
 	}
-
-	if (x_ < -spritewidth/2)
-		x_ += screenwidth + spritewidth;
-	else if (x_ > screenwidth + spritewidth/2)
-		x_ -= screenwidth + spritewidth;
-
-	if (y_ < -spriteheight/2)
-		y_ += screenheight + spriteheight;
-	else if (y_ > screenheight + spriteheight/2)
-		y_ -= screenheight + spriteheight;
+	else
+	{
+		server_velx_ = velocity_x_ = 0;
+		server_vely_ = velocity_y_ = 0;
+		respawnTimer -= timedelta;
+		if (respawnTimer <= 0) {
+			active = true;
+			health = 10;
+			respawnTimer = 3.f;
+		}
+	}
 
 	// Assignment 2
 	if (health <= 0) {
 		health = 0;
 		active = false;
-	}
+	} 
 }
 
 
@@ -229,6 +242,12 @@ void Ship::Render()
 		ss << "Health: " << health;
 		font_->printf(x_ + 5, y_ + 5, HGETEXT_LEFT, "%s", mytext_.c_str());
 		font_->printf(x_ + 5, y_ - 20, HGETEXT_LEFT, "%s", ss.str().c_str());
+	}
+	else {
+		std::ostringstream ss;
+		ss.precision(1);
+		ss << "Respawn in: " << respawnTimer;
+		font_->printf(x_ + 5, y_ + 5, HGETEXT_LEFT, "%s", ss.str().c_str());
 	}
 }
 
