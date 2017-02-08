@@ -89,6 +89,7 @@ bool Application::Init()
         float init_pos_y = (float)(rand() % 400 + 100);
         ships_.push_back( new Ship( ShipType, init_pos_x, init_pos_y ) );
         std::cout << "My Ship: type[" << ShipType << "] x[" << init_pos_x << "] y[" << init_pos_y << "]" << std::endl;
+		rejected = false;
 		ships_.at(0)->SetName("My Ship");
 		if (rakpeer_->Startup(1, 30, &SocketDescriptor(), 1))
 		{
@@ -96,7 +97,6 @@ bool Application::Init()
 			return rakpeer_->Connect(DFL_SERVER_IP, DFL_PORTNUMBER, 0, 0);
 		}
 	}
-	rejected = false;
 	return false;
 }
 
@@ -184,7 +184,7 @@ bool Application::Update()
 	{
 		if (!keydown_w)
 		{
-			SwitchPositions();
+			//SwitchPositions();
 			keydown_w = true;
 		}
 	}
@@ -332,7 +332,7 @@ bool Application::Update()
 		}
 	}
 
-	//if (!rejected) 
+	if (!rejected) 
 	{
 		if (Packet* packet = rakpeer_->Receive())
 		{
