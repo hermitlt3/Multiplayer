@@ -10,7 +10,7 @@
 
 #include "ServerApp.h"
 
-#define MAX_PLAYERS		2
+#define MAX_PLAYERS		1
 #define MAX_POWERUP		2
 
 ServerApp::ServerApp() : 

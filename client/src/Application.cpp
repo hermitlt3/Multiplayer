@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "hge.h"
-
+#include "hgeFont.h"
 #include "RakNetworkFactory.h"
 #include "RakPeerInterface.h"
 #include "Bitstream.h"
@@ -37,7 +37,8 @@ Application::Application() :
 	have_last(false),
 	keydown_enter(false),
 	keydown_q( false ),
-	keydown_w( false )
+	keydown_w( false ),
+	rejectfont("Max players in server")
 {
 }
 
@@ -91,6 +92,8 @@ bool Application::Init()
         std::cout << "My Ship: type[" << ShipType << "] x[" << init_pos_x << "] y[" << init_pos_y << "]" << std::endl;
 		rejected = false;
 		ships_.at(0)->SetName("My Ship");
+		font_.reset(new hgeFont("font1.fnt"));
+		font_->SetScale(0.5);
 		if (rakpeer_->Startup(1, 30, &SocketDescriptor(), 1))
 		{
 			rakpeer_->SetOccasionalPing(true);
@@ -900,62 +903,68 @@ void Application::Render()
 
 	hge_->Gfx_BeginScene();
 	hge_->Gfx_Clear(0);
+	if (!rejected) {
+		// render spaceships
+		ShipList::iterator itr;
+		for (itr = ships_.begin(); itr != ships_.end(); itr++)
+		{
+			(*itr)->Render();
+		}
 
-    // render spaceships
-	ShipList::iterator itr;
-	for (itr = ships_.begin(); itr != ships_.end(); itr++)
+		// render missiles
+		if (mymissile)
+		{
+			mymissile->Render();
+		}
+		if (myenergyball)
+		{
+			myenergyball->Render();
+		}
+		if (mylast)
+		{
+			mylast->Render();
+		}
+		MissileList::iterator itr2;
+		for (itr2 = missiles_.begin(); itr2 != missiles_.end(); itr2++)
+		{
+			(*itr2)->Render();
+		}
+
+		BoomList::iterator itr3;
+		for (itr3 = booms_.begin(); itr3 != booms_.end(); itr3++)
+		{
+			(*itr3)->Render();
+		}
+
+		TimebombList::iterator itr4;
+		for (itr4 = bombs_.begin(); itr4 != bombs_.end(); itr4++)
+		{
+			(*itr4)->Render();
+		}
+
+		EnergyballList::iterator itr5;
+		for (itr5 = energyballs_.begin(); itr5 != energyballs_.end(); itr5++)
+		{
+			(*itr5)->Render();
+		}
+
+		PowerupsList::iterator itr6;
+		for (itr6 = powerupslist.begin(); itr6 != powerupslist.end(); itr6++)
+		{
+			(*itr6)->Render();
+		}
+
+		LastList::iterator itr7;
+		for (itr7 = lastlist_.begin(); itr7 != lastlist_.end(); itr7++)
+		{
+			(*itr7)->Render();
+		}
+	}
+	if (rejected)
 	{
-		(*itr)->Render();
+		font_->printf(400, 240, HGETEXT_LEFT, "%s", rejectfont.c_str());
 	}
 
-	// render missiles
-	if( mymissile )
-	{
-		mymissile->Render();
-	}
-	if (myenergyball)
-	{
-		myenergyball->Render();
-	}
-	if (mylast)
-	{
-		mylast->Render();
-	}
-	MissileList::iterator itr2;
-	for (itr2 = missiles_.begin(); itr2 != missiles_.end(); itr2++)
-	{
-		(*itr2)->Render();
-	}
-
-	BoomList::iterator itr3;
-	for (itr3 = booms_.begin(); itr3 != booms_.end(); itr3++)
-	{
-		(*itr3)->Render();
-	}
-
-	TimebombList::iterator itr4;
-	for (itr4 = bombs_.begin(); itr4 != bombs_.end(); itr4++)
-	{
-		(*itr4)->Render();
-	}
-
-	EnergyballList::iterator itr5;
-	for (itr5 = energyballs_.begin(); itr5 != energyballs_.end(); itr5++)
-	{
-		(*itr5)->Render();
-	}
-
-	PowerupsList::iterator itr6;
-	for (itr6 = powerupslist.begin(); itr6 != powerupslist.end(); itr6++)
-	{
-		(*itr6)->Render();
-	}
-	
-	LastList::iterator itr7;
-	for (itr7 = lastlist_.begin(); itr7 != lastlist_.end(); itr7++)
-	{
-		(*itr7)->Render();
-	}
 	hge_->Gfx_EndScene();
 }
 

@@ -56,6 +56,8 @@ class Application
 
 	TextBox	*fpsbox;
 	TextBox *databox;
+	std::auto_ptr<hgeFont> font_;
+	std::string rejectfont;
 
 	RakPeerInterface* rakpeer_;
 	unsigned int timer_;
