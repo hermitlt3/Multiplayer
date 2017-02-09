@@ -212,11 +212,14 @@ bool Application::Update()
 	{
 		if (Ship* shipHit = (mymissile->Update(ships_, timedelta)))
 		{
-			CreateBoom(mymissile->GetX(), mymissile->GetY(), 0.5f);
-			MissileHit(shipHit->GetID());
-			// have collision
-			delete mymissile;
-			mymissile = 0;
+			if (shipHit->GetActive()) {
+				CreateBoom(mymissile->GetX(), mymissile->GetY(), 0.5f);
+				MissileHit(shipHit->GetID());
+
+				// have collision
+				delete mymissile;
+				mymissile = 0;
+			}
 		}
 	}
 
@@ -226,10 +229,13 @@ bool Application::Update()
 		if( Ship* shipHit = (*missile)->Update(ships_, timedelta) )
 		{
 			// have collision
-			MissileHit(shipHit->GetID());
-			delete *missile;
-			missiles_.erase(missile);
-			break;
+			if (shipHit->GetActive()) {
+				MissileHit(shipHit->GetID());
+
+				delete *missile;
+				missiles_.erase(missile);
+				break;
+			}
 		}
 	}
 
@@ -237,11 +243,13 @@ bool Application::Update()
 	{
 		if (Ship* shipHit = myenergyball->Update(ships_, timedelta))
 		{
-			EnergyBallHit(shipHit->GetID());
-			CreateBoom(myenergyball->GetX(), myenergyball->GetY(), 0.5f);
-			// have collision
-			delete myenergyball;
-			myenergyball = 0;
+			if (shipHit->GetActive()) {
+				EnergyBallHit(shipHit->GetID());
+				CreateBoom(myenergyball->GetX(), myenergyball->GetY(), 0.5f);
+				// have collision
+				delete myenergyball;
+				myenergyball = 0;
+			}
 		}
 	}
 
@@ -252,10 +260,13 @@ bool Application::Update()
 		if (Ship* shipHit = (*energyball)->Update(ships_, timedelta))
 		{
 			// have collision
-			EnergyBallHit(shipHit->GetID());
-			delete *energyball;
-			energyballs_.erase(energyball);
-			break;
+			if (shipHit->GetActive()) {
+				EnergyBallHit(shipHit->GetID());
+
+				delete *energyball;
+				energyballs_.erase(energyball);
+				break;
+			}
 		}
 	}
 
@@ -263,11 +274,14 @@ bool Application::Update()
 	{
 		if (Ship* shipHit = mylast->Update(ships_, timedelta))
 		{
-			LastHit(shipHit->GetID());
-			CreateBoom(mylast->GetX(), mylast->GetY(), 0.5f);
-			// have collision
-			delete mylast;
-			mylast = 0;
+			if (shipHit->GetActive()) {
+				LastHit(shipHit->GetID());
+				CreateBoom(mylast->GetX(), mylast->GetY(), 0.5f);
+
+				// have collision
+				delete mylast;
+				mylast = 0;
+			}
 		}
 	}
 
@@ -278,10 +292,13 @@ bool Application::Update()
 		if (Ship* shipHit = (*last)->Update(ships_, timedelta))
 		{
 			// have collision
-			LastHit(shipHit->GetID());
-			delete *last;
-			lastlist_.erase(last);
-			break;
+			if (shipHit->GetActive()) {
+				LastHit(shipHit->GetID());
+
+				delete *last;
+				lastlist_.erase(last);
+				break;
+			}
 		}
 	}
 
@@ -456,6 +473,8 @@ bool Application::Update()
 								unsigned int shipid;
 								float server_x, server_y, server_w;
 								float server_vel_x, server_vel_y, server_vel_angular;
+								bool active;
+								int health;
 								bs.Read(shipid);
 								for (ShipList::iterator itr = ships_.begin(); itr != ships_.end(); ++itr)
 								{
@@ -467,7 +486,11 @@ bool Application::Update()
 										bs.Read(server_vel_x);
 										bs.Read(server_vel_y);
 										bs.Read(server_vel_angular);
+										bs.Read(active);
+										bs.Read(health);
 
+										(*itr)->SetHealth(health);
+										(*itr)->SetActive(active);
 										(*itr)->SetServerLocation(server_x, server_y, server_w);
 										(*itr)->SetServerVelocity(server_vel_x, server_vel_y, server_vel_angular);
 										(*itr)->DoInterpolateUpdate();
@@ -828,6 +851,8 @@ bool Application::Update()
 			bs2.Write(ships_.at(0)->GetServerVelocityX());
 			bs2.Write(ships_.at(0)->GetServerVelocityY());
 			bs2.Write(ships_.at(0)->GetAngularVelocity());
+			bs2.Write(ships_.at(0)->GetActive());
+			bs2.Write(ships_.at(0)->GetHealth());
 
 			rakpeer_->Send(&bs2, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, UNASSIGNED_SYSTEM_ADDRESS, true);
 			totalsent_ += bs2.GetNumberOfBytesUsed();

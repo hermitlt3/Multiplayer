@@ -99,7 +99,8 @@ public:
     unsigned int GetID( ) { return id; }
 
     void setID( unsigned int newid ) { id = newid; }
-
+	void SetActive(bool active) { this->active = active; }
+	bool GetActive() { return active; }
     void setLocation( float x, float y, float w )
     {
         x_ = x;
