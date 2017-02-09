@@ -56,6 +56,7 @@ Application::~Application() throw()
 	databox = 0;
 
 	Shutdown();
+	font_.release(); 
 	rakpeer_->Shutdown(100);
 	RakNetworkFactory::DestroyRakPeerInterface(rakpeer_);
 }
